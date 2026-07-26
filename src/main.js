@@ -484,6 +484,115 @@ function createElectricField() {
   return group;
 }
 
+function createPikachuDeformer(model) {
+  const uniforms = {
+    uPokeTime: { value: 0 },
+    uPokeReaction: { value: 0 },
+    uPokeEnergy: { value: reducedMotion ? 0.2 : 1 },
+  };
+  let animatedMeshes = 0;
+
+  function installDeformation(material, bounds) {
+    const min = bounds.min;
+    const size = bounds.getSize(new THREE.Vector3());
+    const center = bounds.getCenter(new THREE.Vector3());
+    const originalCompile = material.onBeforeCompile;
+    const originalCacheKey = material.customProgramCacheKey?.bind(material);
+    const number = (value) => Number(value).toFixed(8);
+
+    material.onBeforeCompile = (shader, renderer) => {
+      originalCompile?.(shader, renderer);
+      Object.assign(shader.uniforms, uniforms);
+      shader.vertexShader = shader.vertexShader
+        .replace(
+          '#include <common>',
+          `#include <common>
+          uniform float uPokeTime;
+          uniform float uPokeReaction;
+          uniform float uPokeEnergy;`,
+        )
+        .replace(
+          '#include <begin_vertex>',
+          `#include <begin_vertex>
+          float pokeY = clamp((position.y - ${number(min.y)}) / ${number(Math.max(size.y, 0.0001))}, 0.0, 1.0);
+          float pokeX = (position.x - ${number(center.x)}) / ${number(Math.max(size.x * 0.5, 0.0001))};
+          float pokeZ = (position.z - ${number(center.z)}) / ${number(Math.max(size.z * 0.5, 0.0001))};
+          float pokeBreath = sin(uPokeTime * 2.45) * 0.5 + 0.5;
+          float pokeBody = smoothstep(0.08, 0.28, pokeY) * (1.0 - smoothstep(0.66, 0.84, pokeY));
+          float pokeUpper = smoothstep(0.34, 0.78, pokeY);
+          float pokeHead = smoothstep(0.58, 0.84, pokeY);
+          float pokeEar = smoothstep(0.78, 0.98, pokeY);
+          float pokeFeet = 1.0 - smoothstep(0.05, 0.24, pokeY);
+          float pokeOuter = smoothstep(0.48, 0.94, abs(pokeX));
+
+          float breatheScale = 1.0 + pokeBody * pokeBreath * 0.018 * uPokeEnergy;
+          transformed.x = ${number(center.x)} + (transformed.x - ${number(center.x)}) * breatheScale;
+          transformed.z = ${number(center.z)} + (transformed.z - ${number(center.z)}) * breatheScale;
+
+          float bodyLean = (sin(uPokeTime * 0.88) * 0.026 + sin(uPokeTime * 0.31) * 0.014) * uPokeEnergy;
+          bodyLean += sin(uPokeTime * 8.0) * uPokeReaction * 0.055;
+          float leanPivot = ${number(min.y + size.y * 0.24)};
+          float leanY = transformed.y - leanPivot;
+          transformed.x += -leanY * bodyLean * pokeUpper;
+          transformed.y += abs(pokeX) * pokeFeet * sin(uPokeTime * 1.76) * ${number(size.y * 0.012)} * uPokeEnergy;
+
+          float headTurn = (sin(uPokeTime * 0.72) * 0.024 + sin(uPokeTime * 0.19) * 0.016) * uPokeEnergy;
+          transformed.x += pokeHead * headTurn * ${number(size.x)};
+          transformed.z += pokeHead * sin(uPokeTime * 1.08) * ${number(size.z * 0.008)} * uPokeEnergy;
+          transformed.y += pokeHead * sin(uPokeTime * 1.42) * ${number(size.y * 0.008)} * uPokeEnergy;
+
+          float earSide = sign(pokeX == 0.0 ? 1.0 : pokeX);
+          float earTwitch = sin(uPokeTime * 3.35 + earSide * 1.7) * 0.55 + sin(uPokeTime * 7.9 + earSide) * 0.18;
+          transformed.x += pokeEar * earSide * earTwitch * ${number(size.x * 0.038)} * uPokeEnergy;
+          transformed.z += pokeEar * earTwitch * ${number(size.z * 0.018)} * uPokeEnergy;
+
+          float pawStep = sin(uPokeTime * 1.76 + earSide * 1.5708) * pokeOuter * pokeBody;
+          transformed.y += pawStep * ${number(size.y * 0.014)} * uPokeEnergy;
+          transformed.z += pawStep * ${number(size.z * 0.012)} * uPokeEnergy;
+
+          float tailSwish = sin(uPokeTime * 2.15) * pokeOuter * (1.0 - pokeHead) * (1.0 - pokeFeet);
+          transformed.z += tailSwish * earSide * ${number(size.z * 0.018)} * uPokeEnergy;
+
+          float actionWave = sin(pokeY * 3.14159265);
+          transformed.x += sin(uPokeTime * 10.0 + pokeY * 5.0) * uPokeReaction * actionWave * ${number(size.x * 0.032)};
+          transformed.y += uPokeReaction * actionWave * ${number(size.y * 0.045)};
+          transformed.z += cos(uPokeTime * 9.0 + pokeX * 2.0) * uPokeReaction * actionWave * ${number(size.z * 0.018)};`,
+        );
+    };
+    material.customProgramCacheKey = () => `pokimation-deform-v2-${originalCacheKey?.() || ''}`;
+    material.needsUpdate = true;
+  }
+
+  model.traverse((object) => {
+    if (!object.isMesh || !object.geometry?.attributes?.position) return;
+    object.geometry.computeBoundingBox();
+    const bounds = object.geometry.boundingBox;
+    if (!bounds) return;
+
+    const sourceMaterials = Array.isArray(object.material) ? object.material : [object.material];
+    const animatedMaterials = sourceMaterials.map((source) => {
+      const material = source.clone();
+      installDeformation(material, bounds);
+      return material;
+    });
+    object.material = Array.isArray(object.material) ? animatedMaterials : animatedMaterials[0];
+
+    const depthMaterial = new THREE.MeshDepthMaterial({ depthPacking: THREE.RGBADepthPacking });
+    installDeformation(depthMaterial, bounds);
+    object.customDepthMaterial = depthMaterial;
+    animatedMeshes += 1;
+  });
+
+  return animatedMeshes
+    ? {
+        update(time, reaction) {
+          uniforms.uPokeTime.value = time;
+          uniforms.uPokeReaction.value = reaction;
+        },
+      }
+    : null;
+}
+
 async function getAssetConfig() {
   try {
     const response = await fetch(resolveAsset('assets/scene-config.json'));
@@ -498,7 +607,7 @@ async function getAssetConfig() {
 async function createThreeScene() {
   const scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(34, 1, 0.1, 60);
-  const defaultCamera = new THREE.Vector3(0, 2.5, 8.6);
+  const defaultCamera = new THREE.Vector3(0, 2.6, 10.5);
   camera.position.copy(defaultCamera);
 
   const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: 'high-performance' });
@@ -518,12 +627,12 @@ async function createThreeScene() {
   controls.enableDamping = true;
   controls.dampingFactor = 0.06;
   controls.enablePan = false;
-  controls.minDistance = 5.5;
-  controls.maxDistance = 12;
+  controls.minDistance = 6;
+  controls.maxDistance = 14;
   controls.minPolarAngle = Math.PI * 0.24;
   controls.maxPolarAngle = Math.PI * 0.55;
   controls.autoRotate = !reducedMotion;
-  controls.autoRotateSpeed = 0.35;
+  controls.autoRotateSpeed = 0.12;
 
   scene.add(new THREE.HemisphereLight(0xfff6dc, 0x4b6e78, 2.5));
   const key = new THREE.DirectionalLight(0xfff0c5, 4.6);
@@ -561,6 +670,7 @@ async function createThreeScene() {
   let playing = true;
   let visible = true;
   let partnerReactionAt = -10;
+  let partnerReactionStrength = 0;
 
   const config = await getAssetConfig();
   if (config.backgroundVideo) {
@@ -596,12 +706,15 @@ async function createThreeScene() {
       model.rotation.y = rotationY;
       slot.clear();
       slot.add(model);
+      let proceduralMotion = null;
       if (gltf.animations.length) {
         const mixer = new THREE.AnimationMixer(model);
         mixer.clipAction(gltf.animations[0]).play();
         mixers.push(mixer);
+      } else if (label === 'Pokémon') {
+        proceduralMotion = createPikachuDeformer(model);
       }
-      return { loaded: true, animated: gltf.animations.length > 0 };
+      return { loaded: true, animated: gltf.animations.length > 0, proceduralMotion };
     } catch (error) {
       console.warn(`Could not load ${label} model; keeping the preview companion.`, error);
       return { loaded: false, animated: false };
@@ -612,14 +725,15 @@ async function createThreeScene() {
     replacePreview(humanSlot, config.humanModel, 4.14, -1.2, 'human', config.humanRotationY),
     replacePreview(pokemonSlot, config.pokemonModel, 2.82, 1.25, 'Pokémon', config.pokemonRotationY),
   ]);
-  renderer.domElement.dataset.partnerMotion = results[1].animated ? 'skeletal' : 'procedural';
+  const partnerMotion = results[1].proceduralMotion;
+  renderer.domElement.dataset.partnerMotion = results[1].animated ? 'skeletal' : partnerMotion ? 'procedural-deform' : 'procedural';
 
   function resize() {
     const rect = dom.threeRoot.getBoundingClientRect();
     if (!rect.width || !rect.height) return;
     renderer.setSize(rect.width, rect.height, false);
     camera.aspect = rect.width / rect.height;
-    camera.fov = camera.aspect < 0.9 ? 44 : 34;
+    camera.fov = camera.aspect < 0.9 ? 54 : 34;
     camera.updateProjectionMatrix();
   }
 
@@ -640,6 +754,7 @@ async function createThreeScene() {
       dom.toggleMotion.setAttribute('aria-label', 'Pause scene animation');
     }
     partnerReactionAt = timer.getElapsed();
+    partnerReactionStrength = strength;
     electricField.userData.intensity = Math.max(electricField.userData.intensity, strength);
     dom.duoPanel.classList.remove('is-reacting');
     requestAnimationFrame(() => dom.duoPanel.classList.add('is-reacting'));
@@ -683,34 +798,40 @@ async function createThreeScene() {
       mixers.forEach((mixer) => mixer.update(delta));
       const reactionAge = time - partnerReactionAt;
       const reactionProgress = reactionAge >= 0 && reactionAge < 1.15 ? reactionAge / 1.15 : -1;
-      const reactionJump = reactionProgress >= 0 ? Math.sin(reactionProgress * Math.PI) * 0.9 : 0;
-      const reactionRecoil = reactionProgress >= 0 ? Math.sin(reactionProgress * Math.PI * 2) * 0.14 : 0;
-      const motionCycle = time % 6.4;
+      const reactionEnvelope = reactionProgress >= 0 ? Math.sin(reactionProgress * Math.PI) : 0;
+      const reactionPower = reactionEnvelope * partnerReactionStrength;
+      const reactionJump = reactionEnvelope * 0.38;
+      const reactionRecoil = reactionProgress >= 0 ? Math.sin(reactionProgress * Math.PI * 2) * 0.09 : 0;
+      const motionCycle = time % 7.2;
       const motionPulse = (start, duration, height) => {
         if (motionCycle < start || motionCycle > start + duration) return 0;
         return Math.sin(((motionCycle - start) / duration) * Math.PI) * height;
       };
-      const naturalHop = motionPulse(0.75, 0.72, 0.2)
-        + motionPulse(2.05, 0.62, 0.15)
-        + motionPulse(4.35, 1.05, 0.43);
-      const landing = motionCycle > 5.4 && motionCycle < 5.82
-        ? Math.sin(((motionCycle - 5.4) / 0.42) * Math.PI) * 0.11
+      const naturalHop = motionPulse(4.5, 0.95, 0.13);
+      const anticipation = motionCycle > 4.12 && motionCycle < 4.5
+        ? Math.sin(((motionCycle - 4.12) / 0.38) * Math.PI) * 0.065
         : 0;
-      const breathing = Math.sin(time * 2.25) * 0.018;
-      const partnerLift = Math.max(0, breathing) + naturalHop + reactionJump;
-      const bodySquash = landing - reactionRecoil;
+      const landing = motionCycle > 5.45 && motionCycle < 5.88
+        ? Math.sin(((motionCycle - 5.45) / 0.43) * Math.PI) * 0.075
+        : 0;
+      const partnerLift = naturalHop + reactionJump;
+      const bodySquash = anticipation + landing - reactionRecoil;
+      const weightShift = Math.sin(time * 0.92) * 0.032 + Math.sin(time * 0.27) * 0.016;
 
       humanSlot.position.y = Math.sin(time * 1.15) * 0.018;
       humanSlot.rotation.y = Math.sin(time * 0.38) * 0.025;
       pokemonSlot.position.y = partnerLift;
-      pokemonSlot.rotation.y = Math.sin(time * 0.72) * 0.085;
-      pokemonSlot.rotation.z = Math.sin(time * 1.35) * 0.045 - reactionRecoil;
-      pokemonSlot.rotation.x = naturalHop * -0.08 + Math.sin(time * 1.05) * 0.018;
+      pokemonSlot.position.x = weightShift + reactionRecoil * 0.2;
+      pokemonSlot.position.z = Math.sin(time * 0.63) * 0.02 - reactionPower * 0.025;
+      pokemonSlot.rotation.y = Math.sin(time * 0.58) * 0.055 + Math.sin(time * 0.19) * 0.025 + reactionRecoil * 0.8;
+      pokemonSlot.rotation.z = Math.sin(time * 0.92) * 0.025 - reactionRecoil * 0.65;
+      pokemonSlot.rotation.x = naturalHop * -0.07 + Math.sin(time * 0.7) * 0.012 - reactionPower * 0.035;
       pokemonSlot.scale.set(
-        1 + bodySquash * 0.22 + Math.sin(time * 2.25) * 0.006,
-        1 - bodySquash * 0.18 + Math.sin(time * 2.25) * 0.012,
-        1 + bodySquash * 0.22 + Math.sin(time * 2.25) * 0.006,
+        1 + bodySquash * 0.18,
+        1 - bodySquash * 0.14,
+        1 + bodySquash * 0.18,
       );
+      partnerMotion?.update(time, reactionPower);
 
       electricField.userData.intensity = Math.max(0.12, electricField.userData.intensity - delta * 0.78);
       electricField.position.y = 1.5 + partnerLift;

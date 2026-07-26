@@ -2982,9 +2982,36 @@ main,
 
 .experience-view.is-active .experience-heading,
 .experience-view.is-active .memory-panel,
+.experience-view.is-active .three-root,
 .experience-view.is-active .world-panel,
 .experience-view.is-active .duo-panel {
   animation: trainer-ui-fade 0.58s var(--ease);
+}
+
+.experience-view > .three-root {
+  z-index: 1;
+  overflow: hidden;
+  filter: drop-shadow(0 24px 18px rgba(0, 29, 54, 0.23));
+}
+
+.experience-view > .three-root canvas {
+  display: block;
+}
+
+.world-panel {
+  z-index: 2;
+  pointer-events: none;
+}
+
+.memory-panel,
+.duo-panel,
+.experience-heading,
+.experience-footer {
+  z-index: 3;
+}
+
+.focus-switcher {
+  pointer-events: auto;
 }
 
 .experience-view.is-active .world-panel {
@@ -3007,6 +3034,15 @@ main,
 }
 
 @media (max-width: 980px) {
+  .experience-view > .three-root {
+    position: relative;
+    inset: auto;
+    grid-column: 1;
+    grid-row: 2;
+    width: 100%;
+    height: 100%;
+  }
+
   .memory-panel {
     align-self: start;
   }
@@ -3023,6 +3059,12 @@ main,
 
   .memory-panel {
     display: flex;
+  }
+
+  .experience-view > .three-root {
+    grid-column: 1;
+    grid-row: 2;
+    min-height: 500px;
   }
 
   .memory-photo {
