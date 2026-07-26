@@ -45,6 +45,7 @@ The current production build includes:
 - a rigged human GLB with a 10-second `happy_jump` animation;
 - the supplied Golden Gate anime background video;
 - the supplied Golden Gate card photo as the featured original memory.
+- the supplied Poké Ball artwork as the interactive 3D stage surface.
 
 The loader normalizes the models to the current stage, enables shadows, supports Draco-compressed geometry, applies optional Y-axis rotations from the config, and plays the first animation clip found in each GLB. Procedural preview companions remain available as a graceful fallback if either model cannot load.
 
@@ -58,6 +59,7 @@ public/assets/scene-config.json         # Swappable final asset paths
 public/assets/models/human/             # Human/trainer GLBs
 public/assets/models/pokemon/           # Pokémon/partner GLBs
 public/assets/original/                 # Featured original memory
+public/assets/stage/                    # Poké Ball stage artwork
 public/assets/video/                    # Background video
 public/draco/                           # Local Draco decoder
 ```

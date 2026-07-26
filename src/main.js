@@ -323,29 +323,35 @@ function createPartner() {
   return group;
 }
 
-function createStage() {
+function createStage(renderer) {
   const group = new THREE.Group();
+  const stageTexture = new THREE.TextureLoader().load(resolveAsset('assets/stage/pokeball-stage.jpg'));
+  stageTexture.colorSpace = THREE.SRGBColorSpace;
+  stageTexture.anisotropy = renderer.capabilities.getMaxAnisotropy();
+  stageTexture.minFilter = THREE.LinearMipmapLinearFilter;
+
   const ground = new THREE.Mesh(
     new THREE.CircleGeometry(3.25, 96),
-    new THREE.MeshStandardMaterial({ color: 0xf1d88a, roughness: 0.8, metalness: 0.05, transparent: true, opacity: 0.84 }),
+    new THREE.MeshStandardMaterial({
+      map: stageTexture,
+      color: 0xffffff,
+      roughness: 0.68,
+      metalness: 0.08,
+      transparent: true,
+      opacity: 0.98,
+    }),
   );
   ground.rotation.x = -Math.PI / 2;
   ground.receiveShadow = true;
 
   const ring = new THREE.Mesh(
-    new THREE.TorusGeometry(3.28, 0.025, 8, 160),
-    new THREE.MeshBasicMaterial({ color: 0xf05f58, transparent: true, opacity: 0.72 }),
+    new THREE.TorusGeometry(3.28, 0.035, 10, 160),
+    new THREE.MeshBasicMaterial({ color: 0x2b8dff, transparent: true, opacity: 0.94 }),
   );
   ring.rotation.x = Math.PI / 2;
   ring.position.y = 0.015;
 
-  const innerRing = new THREE.Mesh(
-    new THREE.RingGeometry(2.35, 2.38, 96),
-    new THREE.MeshBasicMaterial({ color: 0x4aa99b, transparent: true, opacity: 0.38, side: THREE.DoubleSide }),
-  );
-  innerRing.rotation.x = -Math.PI / 2;
-  innerRing.position.y = 0.025;
-  group.add(ground, ring, innerRing);
+  group.add(ground, ring);
   return group;
 }
 
@@ -432,7 +438,7 @@ async function createThreeScene() {
   warm.position.set(0, 1.2, 3.4);
   scene.add(warm);
 
-  const stage = createStage();
+  const stage = createStage(renderer);
   const humanSlot = new THREE.Group();
   const pokemonSlot = new THREE.Group();
   const trainer = createTrainer();
