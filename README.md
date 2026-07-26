@@ -9,7 +9,7 @@ npm install
 npm run dev
 ```
 
-Open <http://127.0.0.1:4173/>.
+Open <https://pokimation.vercel.app/>. click "Open the featured memory" to test if you don't have an image with pokemon card!
 
 Production check:
 
