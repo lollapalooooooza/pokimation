@@ -96,7 +96,7 @@ dom.dropZone.addEventListener('keydown', (event) => {
 dom.input.addEventListener('change', () => acceptFile(dom.input.files[0]));
 dom.uploadForm.addEventListener('submit', (event) => event.preventDefault());
 dom.demo.addEventListener('click', async () => {
-  setMemoryImage(resolveAsset('assets/original/pokemon.png'), 'Golden Gate Pikachu');
+  setMemoryImage(resolveAsset('assets/original/pokemon.jpg'), 'Golden Gate Pikachu');
   await enterWorld();
 });
 
