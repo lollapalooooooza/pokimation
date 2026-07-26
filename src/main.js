@@ -76,33 +76,6 @@ async function acceptFile(file) {
   await enterWorld();
 }
 
-function createDemoMemory() {
-  const svg = `
-    <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="1500" viewBox="0 0 1200 1500">
-      <defs>
-        <linearGradient id="sky" x2="0" y2="1"><stop stop-color="#8edff2"/><stop offset=".62" stop-color="#fff0b1"/><stop offset="1" stop-color="#f8a66f"/></linearGradient>
-        <linearGradient id="card" x2="1" y2="1"><stop stop-color="#ffe66d"/><stop offset="1" stop-color="#ff705e"/></linearGradient>
-      </defs>
-      <rect width="1200" height="1500" rx="52" fill="url(#sky)"/>
-      <circle cx="906" cy="275" r="142" fill="#fff9c9" opacity=".9"/>
-      <path d="M0 902 230 674l180 175 236-276 280 306 274-217v838H0Z" fill="#5d9e7b"/>
-      <path d="M0 1010c248-128 490-54 664 63 184 125 357 74 536-28v455H0Z" fill="#8bc96c"/>
-      <g fill="#fff" opacity=".8"><ellipse cx="250" cy="280" rx="145" ry="48"/><ellipse cx="365" cy="250" rx="95" ry="40"/><ellipse cx="825" cy="490" rx="155" ry="51"/></g>
-      <g transform="translate(290 450) rotate(-6 305 405)">
-        <rect width="610" height="810" rx="38" fill="#24304c" opacity=".2" transform="translate(22 28)"/>
-        <rect width="610" height="810" rx="38" fill="#fff9e9" stroke="#24304c" stroke-width="18"/>
-        <rect x="45" y="45" width="520" height="500" rx="24" fill="url(#card)"/>
-        <circle cx="305" cy="290" r="122" fill="#fff5c7"/>
-        <path d="m305 190 30 69 74 8-56 48 17 73-65-38-65 38 17-73-56-48 74-8Z" fill="#f4b52f"/>
-        <text x="65" y="630" font-family="Arial,sans-serif" font-weight="700" font-size="54" fill="#24304c">FIRST ENCOUNTER</text>
-        <rect x="65" y="675" width="470" height="22" rx="11" fill="#a9d7cb"/>
-        <rect x="65" y="722" width="330" height="16" rx="8" fill="#ddd5c1"/>
-      </g>
-      <g stroke="#fff9e9" stroke-width="12" stroke-linecap="round"><path d="m171 451 38-72m-73 37 73 35"/><path d="m1000 693 45-66m-80 25 78 34"/></g>
-    </svg>`;
-  return URL.createObjectURL(new Blob([svg], { type: 'image/svg+xml' }));
-}
-
 function handleDrag(event) {
   event.preventDefault();
   if (event.type === 'dragenter' || event.type === 'dragover') dom.dropZone.classList.add('is-dragging');
@@ -123,7 +96,7 @@ dom.dropZone.addEventListener('keydown', (event) => {
 dom.input.addEventListener('change', () => acceptFile(dom.input.files[0]));
 dom.uploadForm.addEventListener('submit', (event) => event.preventDefault());
 dom.demo.addEventListener('click', async () => {
-  setMemoryImage(createDemoMemory(), 'Demo');
+  setMemoryImage(resolveAsset('assets/original/pokemon.png'), 'Golden Gate Pikachu');
   await enterWorld();
 });
 
@@ -492,7 +465,7 @@ async function createThreeScene() {
   const loader = new GLTFLoader();
   loader.setDRACOLoader(draco);
 
-  async function replacePreview(slot, path, targetHeight, xPosition, label) {
+  async function replacePreview(slot, path, targetHeight, xPosition, label, rotationY = 0) {
     if (!path) return false;
     try {
       const gltf = await loader.loadAsync(resolveAsset(path));
@@ -510,6 +483,7 @@ async function createThreeScene() {
       const scaledBox = new THREE.Box3().setFromObject(model);
       const center = scaledBox.getCenter(new THREE.Vector3());
       model.position.set(xPosition - center.x, -scaledBox.min.y + 0.04, -center.z);
+      model.rotation.y = rotationY;
       slot.clear();
       slot.add(model);
       if (gltf.animations.length) {
@@ -525,12 +499,12 @@ async function createThreeScene() {
   }
 
   const results = await Promise.all([
-    replacePreview(humanSlot, config.humanModel, 3.45, -1.2, 'human'),
-    replacePreview(pokemonSlot, config.pokemonModel, 2.35, 1.25, 'Pokémon'),
+    replacePreview(humanSlot, config.humanModel, 3.45, -1.2, 'human', config.humanRotationY),
+    replacePreview(pokemonSlot, config.pokemonModel, 2.35, 1.25, 'Pokémon', config.pokemonRotationY),
   ]);
   const loadedCount = results.filter(Boolean).length;
   dom.assetStatus.textContent = loadedCount
-    ? `${loadedCount}/2 final companion${loadedCount === 1 ? '' : 's'} loaded`
+    ? `${loadedCount}/2 production companion${loadedCount === 1 ? '' : 's'} loaded`
     : configuredAssets
       ? 'Using preview companions · check asset paths'
       : 'Preview companions · ready for your assets';
@@ -540,6 +514,7 @@ async function createThreeScene() {
     if (!rect.width || !rect.height) return;
     renderer.setSize(rect.width, rect.height, false);
     camera.aspect = rect.width / rect.height;
+    camera.fov = camera.aspect < 0.9 ? 44 : 34;
     camera.updateProjectionMatrix();
   }
 

@@ -27,24 +27,26 @@ npm run build
 
 ## Final asset contract
 
-Asset locations are controlled by `public/assets/scene-config.json`:
+Production asset locations are controlled by `public/assets/scene-config.json`:
 
 ```json
 {
-  "humanModel": "assets/models/human/trainer.glb",
-  "pokemonModel": "assets/models/pokemon/companion.glb",
-  "backgroundVideo": "assets/video/pokimation-background.mp4"
+  "humanModel": "assets/models/human/trainer-happy-jump.glb",
+  "humanRotationY": -0.7853981634,
+  "pokemonModel": "assets/models/pokemon/pikachu.glb",
+  "pokemonRotationY": -0.7853981634,
+  "backgroundVideo": "assets/video/golden-gate-anime.mp4"
 }
 ```
 
-The values are `null` in the initial build, so Pokimation uses its procedural preview companions and illustrated background. Once the final assets arrive:
+The current production build includes:
 
-- place the human GLB in `public/assets/models/human/`;
-- place the Pokémon GLB in `public/assets/models/pokemon/`;
-- place the MP4 or WEBM background in `public/assets/video/`;
-- update the three paths in `scene-config.json`.
+- a textured Pikachu GLB generated with Meshy;
+- a rigged human GLB with a 10-second `happy_jump` animation;
+- the supplied Golden Gate anime background video;
+- the supplied Golden Gate card photo as the featured original memory.
 
-The loader normalizes the models to the current stage, enables shadows, supports Draco-compressed geometry, and plays the first animation clip found in each GLB.
+The loader normalizes the models to the current stage, enables shadows, supports Draco-compressed geometry, applies optional Y-axis rotations from the config, and plays the first animation clip found in each GLB. Procedural preview companions remain available as a graceful fallback if either model cannot load.
 
 ## Important files
 
@@ -55,6 +57,7 @@ src/styles.css                          # Responsive anime-inspired visual syste
 public/assets/scene-config.json         # Swappable final asset paths
 public/assets/models/human/             # Human/trainer GLBs
 public/assets/models/pokemon/           # Pokémon/partner GLBs
+public/assets/original/                 # Featured original memory
 public/assets/video/                    # Background video
 public/draco/                           # Local Draco decoder
 ```

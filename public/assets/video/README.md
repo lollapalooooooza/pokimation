@@ -1,9 +1,9 @@
 # Background video
 
-Place the final looping MP4 or WEBM scene in this folder. Then set `backgroundVideo` in `public/assets/scene-config.json`, for example:
+The production scene uses `golden-gate-anime.mp4`. Select a different looping MP4 or WEBM through `public/assets/scene-config.json`:
 
 ```json
-"backgroundVideo": "assets/video/pokimation-background.mp4"
+"backgroundVideo": "assets/video/golden-gate-anime.mp4"
 ```
 
-The app uses an illustrated anime landscape whenever no video is configured.
+The app uses an illustrated anime landscape whenever no video is configured or the configured video cannot load.
