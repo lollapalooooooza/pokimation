@@ -3199,7 +3199,8 @@ main,
   --game-yellow: #7ee8ff;
 }
 
-.experience-view[data-scene="bigFish"] .scene-backdrop img {
+.experience-view[data-scene="bigFish"] .scene-backdrop img,
+.experience-view[data-scene="bigFish"] .scene-backdrop video {
   opacity: 1;
   filter: saturate(1.03) contrast(1.02) brightness(0.93);
   object-position: center;

@@ -825,6 +825,7 @@ async function createThreeScene() {
     dom.backgroundVideo.pause();
     dom.backgroundVideo.hidden = true;
     dom.backgroundImage.hidden = true;
+    dom.backgroundVideo.removeAttribute('poster');
     dom.toggleAudio.disabled = true;
     dom.toggleAudio.classList.remove('is-active');
     dom.backgroundVideo.muted = true;
@@ -834,6 +835,7 @@ async function createThreeScene() {
       dom.backgroundImage.hidden = false;
     } else if (config.backgroundVideo) {
       dom.backgroundVideo.src = resolveAsset(config.backgroundVideo);
+      if (config.backgroundPoster) dom.backgroundVideo.poster = resolveAsset(config.backgroundPoster);
       dom.backgroundVideo.hidden = false;
       dom.backgroundVideo.load();
       dom.backgroundVideo.play().catch(() => {});
@@ -859,6 +861,7 @@ async function createThreeScene() {
       ),
     ]);
     partnerMotion = results[1].proceduralMotion;
+    renderer.domElement.dataset.humanMotion = results[0].animated ? 'skeletal' : 'static';
     renderer.domElement.dataset.partnerMotion = results[1].animated
       ? 'skeletal'
       : partnerMotion

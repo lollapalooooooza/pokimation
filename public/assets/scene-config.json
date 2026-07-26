@@ -3,7 +3,7 @@
   "scenes": {
     "bigFish": {
       "originalImage": "assets/original/big-fish.jpg",
-      "humanModel": "assets/models/human/big-fish-trainer.glb",
+      "humanModel": "assets/models/human/big-fish-trainer-idle.glb",
       "humanRotationY": 0,
       "humanHeight": 4.05,
       "humanX": -1.25,
@@ -11,7 +11,8 @@
       "partnerRotationY": 0,
       "partnerHeight": 2.55,
       "partnerX": 1.35,
-      "backgroundImage": "assets/backgrounds/deep-blue-boat.png",
+      "backgroundVideo": "assets/video/deep-blue-boat-loop.mp4",
+      "backgroundPoster": "assets/backgrounds/deep-blue-boat.png",
       "sceneTitle": "Catch Select",
       "sceneSubtitle": "Reel in your partner and start the deep-blue adventure!",
       "memoryCaption": "Deep Blue file",

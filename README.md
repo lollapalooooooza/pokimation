@@ -34,9 +34,10 @@ Production asset locations and scene-specific copy are controlled by `public/ass
   "defaultScene": "bigFish",
   "scenes": {
     "bigFish": {
-      "humanModel": "assets/models/human/big-fish-trainer.glb",
+      "humanModel": "assets/models/human/big-fish-trainer-idle.glb",
       "partnerModel": "assets/models/pokemon/big-fish.glb",
-      "backgroundImage": "assets/backgrounds/deep-blue-boat.png"
+      "backgroundVideo": "assets/video/deep-blue-boat-loop.mp4",
+      "backgroundPoster": "assets/backgrounds/deep-blue-boat.png"
     },
     "pikachu": {
       "humanModel": "assets/models/human/trainer-happy-jump.glb",
@@ -51,8 +52,8 @@ The current production build includes:
 
 - a textured Pikachu GLB generated with Meshy;
 - a rigged human GLB with a 10-second `happy_jump` animation;
-- the supplied textured fisherman and Big Fish Meshy GLBs;
-- the supplied Deep Blue boat image as the static Big Fish scene background;
+- the supplied skinned fisherman GLB with its 5.37-second idle animation and the textured Big Fish Meshy GLB;
+- the supplied five-second Deep Blue boat loop, with the still image retained as its loading poster;
 - the refreshed Golden Gate anime background video, optimized to 720p for the web;
 - the supplied Golden Gate card photo as the featured original memory.
 - the supplied transparent Poké Ball cover artwork on a dimensional, illuminated 3D stage.
