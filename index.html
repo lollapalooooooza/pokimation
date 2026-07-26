@@ -96,32 +96,45 @@
             <video id="background-video" muted loop playsinline preload="metadata"></video>
             <div class="scene-gradient"></div>
             <div class="speed-lines"></div>
+            <div class="ground-haze"></div>
           </div>
 
           <div class="experience-heading">
-            <p class="eyebrow"><span></span> Memory synchronized</p>
-            <h1 id="scene-title" tabindex="-1">Your adventure<br />starts <em>together.</em></h1>
+            <div class="select-heading">
+              <span class="brand-ball select-ball" aria-hidden="true"><i></i></span>
+              <div>
+                <h1 id="scene-title" tabindex="-1">Trainer Select</h1>
+                <p>Choose your partner and start your journey! <b aria-hidden="true">ϟ</b></p>
+              </div>
+            </div>
+            <div class="sync-badge"><i></i><span>Memory synchronized</span><strong>ONLINE</strong></div>
           </div>
 
           <aside class="memory-panel" aria-label="Uploaded original image">
-            <div class="panel-label"><span>01</span> Original memory</div>
+            <div class="panel-label"><span class="mini-ball" aria-hidden="true"></span> Trainer files <b>Active</b></div>
             <figure class="memory-photo">
               <img id="memory-image" alt="Your uploaded Pokémon card memory" />
               <figcaption>
-                <span>Trainer archive</span>
+                <span>Golden Gate file</span>
                 <time id="memory-date"></time>
               </figcaption>
             </figure>
-            <p>We keep the full original image—never a cropped thumbnail.</p>
+            <div class="file-readout">
+              <span><small>Trainer ID</small><b>SF-025</b></span>
+              <span><small>Capture</small><b>Original</b></span>
+              <span><small>Bond</small><b>88%</b></span>
+            </div>
+            <p><i aria-hidden="true">✓</i> Full original memory verified</p>
           </aside>
 
           <section class="world-panel" aria-label="Interactive 3D character and Pokémon scene">
             <div class="world-topline">
-              <span class="live-chip"><i></i> 3D scene live</span>
+              <span class="live-chip"><i></i> Partner arena live</span>
               <span id="asset-status">Loading your duo…</span>
             </div>
+            <div class="scene-reticle" aria-hidden="true"><i></i><b></b></div>
             <div id="three-root" class="three-root"></div>
-            <div class="orbit-hint" aria-hidden="true"><i>↔</i> drag to orbit</div>
+            <div class="orbit-hint" aria-hidden="true"><i>↔</i> Drag to orbit <b>•</b> Scroll to zoom</div>
             <div class="world-spark world-spark-one" aria-hidden="true">✦</div>
             <div class="world-spark world-spark-two" aria-hidden="true">✧</div>
             <div class="focus-switcher" aria-label="Scene focus">
@@ -132,32 +145,45 @@
           </section>
 
           <aside class="duo-panel" aria-label="Duo story details">
-            <div class="panel-label"><span>02</span> Your duo</div>
-            <p class="chapter">Chapter 001</p>
-            <h2>A wild memory<br />appeared!</h2>
-            <p class="duo-copy">
-              One photo. Two companions. A whole new world waiting just beyond the card frame.
-            </p>
-            <div class="bond-card">
-              <div>
-                <span>Partner bond</span>
-                <strong>Pikachu encounter</strong>
-              </div>
-              <b>88<small>%</small></b>
-              <i><span></span></i>
+            <div class="electric-aura" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+            <header class="partner-header">
+              <span class="mini-ball partner-ball" aria-hidden="true"></span>
+              <div><small>No. 025</small><h2>Pikachu <b>♂</b></h2></div>
+              <span class="rarity">Rare</span>
+            </header>
+            <div class="type-row">
+              <span>Type</span><strong><i aria-hidden="true">ϟ</i> Electric</strong>
             </div>
-            <dl class="scene-meta">
-              <div><dt>Scene</dt><dd>Golden Gate dream</dd></div>
-              <div><dt>Mood</dt><dd>Electric</dd></div>
-              <div><dt>Weather</dt><dd>Bay sunshine</dd></div>
-            </dl>
+            <div class="level-row">
+              <strong>Lv. 25</strong>
+              <span aria-label="Three out of five stars">★ ★ ★ <i>★ ★</i></span>
+            </div>
+            <div class="hp-readout">
+              <span>HP</span><i><b></b></i><strong>65 / 65</strong>
+            </div>
+            <div class="profile-grid">
+              <span><small>Height</small><b>0.4 m</b></span>
+              <span><small>Weight</small><b>6.0 kg</b></span>
+            </div>
+            <div class="stat-list" aria-label="Partner statistics">
+              <div><span><i>⚔</i> Attack</span><b><em style="--value: 78%"></em></b><strong>78</strong></div>
+              <div><span><i>➤</i> Speed</span><b><em style="--value: 92%"></em></b><strong>92</strong></div>
+              <div><span><i>✦</i> Agility</span><b><em style="--value: 88%"></em></b><strong>88</strong></div>
+              <div><span><i>♥</i> Bond</span><b><em style="--value: 85%"></em></b><strong>85</strong></div>
+            </div>
+            <div class="moves-card">
+              <h3>Moves <span>PP</span></h3>
+              <button type="button" data-move="thunderbolt"><i>ϟ</i><span>Thunderbolt</span><b>15/15</b></button>
+              <button type="button" data-move="quick-attack"><i>✦</i><span>Quick Attack</span><b>30/30</b></button>
+              <button type="button" data-move="electro-ball"><i>ϟ</i><span>Electro Ball</span><b>10/10</b></button>
+            </div>
             <button id="save-moment" class="primary-button" type="button">
-              <span>Save this moment</span><b aria-hidden="true">✦</b>
+              <span>Confirm Partner</span><b class="button-ball" aria-hidden="true"><i></i></b>
             </button>
           </aside>
 
           <div class="experience-footer">
-            <span><b>Tip</b> Scroll to zoom · drag to look around</span>
+            <span><b>Tip</b> Select Pikachu or a move to trigger a reaction</span>
             <div class="scene-actions">
               <button id="toggle-motion" type="button" aria-label="Pause scene animation">Ⅱ</button>
               <button id="reset-camera" type="button" aria-label="Reset 3D camera">↺</button>

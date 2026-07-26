@@ -45,9 +45,10 @@ The current production build includes:
 - a rigged human GLB with a 10-second `happy_jump` animation;
 - the supplied Golden Gate anime background video;
 - the supplied Golden Gate card photo as the featured original memory.
-- the supplied Poké Ball artwork as the interactive 3D stage surface.
+- the supplied transparent Poké Ball cover artwork on a dimensional, illuminated 3D stage.
+- automatic GLB clip playback plus a procedural Pokémon idle/reaction system for static meshes.
 
-The loader normalizes the models to the current stage, enables shadows, supports Draco-compressed geometry, applies optional Y-axis rotations from the config, and plays the first animation clip found in each GLB. Procedural preview companions remain available as a graceful fallback if either model cannot load.
+The loader normalizes the models to the current stage, enables shadows, supports Draco-compressed geometry, applies optional Y-axis rotations from the config, and plays the first animation clip found in each GLB. The current Pikachu source mesh has no embedded skin or animation clip, so Pokimation adds polished root motion and electric reactions at runtime; a future rigged GLB will be picked up automatically. Procedural preview companions remain available as a graceful fallback if either model cannot load.
 
 ## Important files
 

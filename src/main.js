@@ -30,6 +30,8 @@ const dom = {
   toggleAudio: document.querySelector('#toggle-audio'),
   backgroundVideo: document.querySelector('#background-video'),
   assetStatus: document.querySelector('#asset-status'),
+  duoPanel: document.querySelector('.duo-panel'),
+  moveButtons: [...document.querySelectorAll('[data-move]')],
   saveMoment: document.querySelector('#save-moment'),
   toast: document.querySelector('#toast'),
 };
@@ -325,33 +327,53 @@ function createPartner() {
 
 function createStage(renderer) {
   const group = new THREE.Group();
-  const stageTexture = new THREE.TextureLoader().load(resolveAsset('assets/stage/pokeball-stage.jpg'));
+  group.name = 'Poké Ball arena';
+  const stageTexture = new THREE.TextureLoader().load(resolveAsset('assets/stage/pokeball-stage-cover.png'));
   stageTexture.colorSpace = THREE.SRGBColorSpace;
   stageTexture.anisotropy = renderer.capabilities.getMaxAnisotropy();
   stageTexture.minFilter = THREE.LinearMipmapLinearFilter;
 
-  const ground = new THREE.Mesh(
-    new THREE.CircleGeometry(3.25, 96),
+  const stageBase = new THREE.Mesh(
+    new THREE.CylinderGeometry(3.27, 3.38, 0.18, 96, 1, false),
+    new THREE.MeshStandardMaterial({
+      color: 0x123e86,
+      roughness: 0.28,
+      metalness: 0.58,
+    }),
+  );
+  stageBase.position.y = 0.01;
+  stageBase.receiveShadow = true;
+  stageBase.castShadow = true;
+
+  const cover = new THREE.Mesh(
+    new THREE.CircleGeometry(3.29, 128),
     new THREE.MeshStandardMaterial({
       map: stageTexture,
       color: 0xffffff,
-      roughness: 0.68,
-      metalness: 0.08,
+      roughness: 0.5,
+      metalness: 0.12,
       transparent: true,
-      opacity: 0.98,
+      alphaTest: 0.025,
     }),
   );
-  ground.rotation.x = -Math.PI / 2;
-  ground.receiveShadow = true;
+  cover.rotation.x = -Math.PI / 2;
+  cover.position.y = 0.11;
+  cover.receiveShadow = true;
 
-  const ring = new THREE.Mesh(
-    new THREE.TorusGeometry(3.28, 0.035, 10, 160),
-    new THREE.MeshBasicMaterial({ color: 0x2b8dff, transparent: true, opacity: 0.94 }),
+  const underglow = new THREE.Mesh(
+    new THREE.TorusGeometry(3.36, 0.045, 10, 160),
+    new THREE.MeshBasicMaterial({
+      color: 0x49baff,
+      transparent: true,
+      opacity: 0.75,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+    }),
   );
-  ring.rotation.x = Math.PI / 2;
-  ring.position.y = 0.015;
+  underglow.rotation.x = Math.PI / 2;
+  underglow.position.y = -0.035;
 
-  group.add(ground, ring);
+  group.add(stageBase, cover, underglow);
   return group;
 }
 
@@ -378,6 +400,53 @@ function createWorldParticles() {
     geometry,
     new THREE.PointsMaterial({ size: 0.045, vertexColors: true, transparent: true, opacity: 0.72 }),
   );
+}
+
+function createElectricField() {
+  const group = new THREE.Group();
+  group.name = 'Partner electric field';
+  group.position.set(1.25, 1.25, 0);
+  group.userData.intensity = 0;
+
+  const materials = [];
+  for (let boltIndex = 0; boltIndex < 7; boltIndex += 1) {
+    const points = [];
+    const angle = (boltIndex / 7) * Math.PI * 2;
+    for (let pointIndex = 0; pointIndex < 7; pointIndex += 1) {
+      const progress = pointIndex / 6;
+      const radius = 0.72 + progress * 0.74;
+      const jitter = pointIndex === 0 || pointIndex === 6 ? 0 : (Math.random() - 0.5) * 0.22;
+      points.push(new THREE.Vector3(
+        Math.cos(angle) * radius + jitter,
+        (progress - 0.5) * 1.75 + (Math.random() - 0.5) * 0.16,
+        Math.sin(angle) * radius * 0.55 + jitter,
+      ));
+    }
+    const material = new THREE.LineBasicMaterial({
+      color: boltIndex % 2 ? 0xfff16a : 0x63c7ff,
+      transparent: true,
+      opacity: 0.1,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+    });
+    materials.push(material);
+    group.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(points), material));
+  }
+
+  const ringMaterial = new THREE.MeshBasicMaterial({
+    color: 0xffdf3c,
+    transparent: true,
+    opacity: 0,
+    blending: THREE.AdditiveBlending,
+    depthWrite: false,
+  });
+  const shockwave = new THREE.Mesh(new THREE.TorusGeometry(0.8, 0.025, 8, 72), ringMaterial);
+  shockwave.rotation.x = Math.PI / 2;
+  shockwave.position.y = -1.02;
+  group.add(shockwave);
+  group.userData.materials = materials;
+  group.userData.shockwave = shockwave;
+  return group;
 }
 
 async function getAssetConfig() {
@@ -448,13 +517,15 @@ async function createThreeScene() {
   scene.add(stage, humanSlot, pokemonSlot);
 
   const worldParticles = createWorldParticles();
-  scene.add(worldParticles);
+  const electricField = createElectricField();
+  scene.add(worldParticles, electricField);
   const mixers = [];
   const timer = new THREE.Timer();
   timer.connect(document);
   const desiredTarget = new THREE.Vector3(0, 1.45, 0);
   let playing = true;
   let visible = true;
+  let partnerReactionAt = -10;
 
   const config = await getAssetConfig();
   const configuredAssets = [config.humanModel, config.pokemonModel].filter(Boolean).length;
@@ -472,7 +543,7 @@ async function createThreeScene() {
   loader.setDRACOLoader(draco);
 
   async function replacePreview(slot, path, targetHeight, xPosition, label, rotationY = 0) {
-    if (!path) return false;
+    if (!path) return { loaded: false, animated: false };
     try {
       const gltf = await loader.loadAsync(resolveAsset(path));
       const model = gltf.scene;
@@ -488,7 +559,7 @@ async function createThreeScene() {
       model.scale.setScalar(scale);
       const scaledBox = new THREE.Box3().setFromObject(model);
       const center = scaledBox.getCenter(new THREE.Vector3());
-      model.position.set(xPosition - center.x, -scaledBox.min.y + 0.04, -center.z);
+      model.position.set(xPosition - center.x, -scaledBox.min.y + 0.13, -center.z);
       model.rotation.y = rotationY;
       slot.clear();
       slot.add(model);
@@ -497,10 +568,10 @@ async function createThreeScene() {
         mixer.clipAction(gltf.animations[0]).play();
         mixers.push(mixer);
       }
-      return true;
+      return { loaded: true, animated: gltf.animations.length > 0 };
     } catch (error) {
       console.warn(`Could not load ${label} model; keeping the preview companion.`, error);
-      return false;
+      return { loaded: false, animated: false };
     }
   }
 
@@ -508,9 +579,9 @@ async function createThreeScene() {
     replacePreview(humanSlot, config.humanModel, 3.45, -1.2, 'human', config.humanRotationY),
     replacePreview(pokemonSlot, config.pokemonModel, 2.35, 1.25, 'Pokémon', config.pokemonRotationY),
   ]);
-  const loadedCount = results.filter(Boolean).length;
+  const loadedCount = results.filter((result) => result.loaded).length;
   dom.assetStatus.textContent = loadedCount
-    ? `${loadedCount}/2 production companion${loadedCount === 1 ? '' : 's'} loaded`
+    ? `${loadedCount}/2 companions live · Pikachu motion active`
     : configuredAssets
       ? 'Using preview companions · check asset paths'
       : 'Preview companions · ready for your assets';
@@ -531,9 +602,37 @@ async function createThreeScene() {
     desiredTarget.set(x, mode === 'pokemon' ? 1.2 : 1.45, 0);
     dom.focusButtons.forEach((button) => button.classList.toggle('is-active', button.dataset.focus === mode));
     controls.autoRotate = mode === 'duo' && !reducedMotion;
+    if (mode === 'pokemon') triggerPartnerReaction(0.72);
+  }
+
+  function triggerPartnerReaction(strength = 1) {
+    if (!playing) {
+      playing = true;
+      dom.toggleMotion.textContent = 'Ⅱ';
+      dom.toggleMotion.setAttribute('aria-label', 'Pause scene animation');
+    }
+    partnerReactionAt = timer.getElapsed();
+    electricField.userData.intensity = Math.max(electricField.userData.intensity, strength);
+    dom.duoPanel.classList.remove('is-reacting');
+    requestAnimationFrame(() => dom.duoPanel.classList.add('is-reacting'));
+    window.setTimeout(() => dom.duoPanel.classList.remove('is-reacting'), 900);
   }
 
   dom.focusButtons.forEach((button) => button.addEventListener('click', () => focus(button.dataset.focus)));
+  dom.moveButtons.forEach((button) => button.addEventListener('click', () => {
+    dom.moveButtons.forEach((moveButton) => moveButton.classList.toggle('is-active', moveButton === button));
+    triggerPartnerReaction(button.dataset.move === 'thunderbolt' ? 1.35 : 1);
+  }));
+  let pointerOrigin = null;
+  renderer.domElement.addEventListener('pointerdown', (event) => {
+    pointerOrigin = { x: event.clientX, y: event.clientY };
+  });
+  renderer.domElement.addEventListener('pointerup', (event) => {
+    if (!pointerOrigin) return;
+    const distance = Math.hypot(event.clientX - pointerOrigin.x, event.clientY - pointerOrigin.y);
+    pointerOrigin = null;
+    if (distance < 7) triggerPartnerReaction(0.9);
+  });
   dom.resetCamera.addEventListener('click', () => {
     camera.position.copy(defaultCamera);
     desiredTarget.set(0, 1.45, 0);
@@ -554,15 +653,36 @@ async function createThreeScene() {
     const time = timer.getElapsed();
     if (visible && playing) {
       mixers.forEach((mixer) => mixer.update(delta));
-      if (trainer.userData.preview) {
-        trainer.position.y = 0.15 + Math.sin(time * 1.25) * 0.035;
-        trainer.rotation.y = Math.sin(time * 0.48) * 0.08;
+      const reactionAge = time - partnerReactionAt;
+      const reactionProgress = reactionAge >= 0 && reactionAge < 1.15 ? reactionAge / 1.15 : -1;
+      const jump = reactionProgress >= 0 ? Math.sin(reactionProgress * Math.PI) * 0.72 : 0;
+      const recoil = reactionProgress >= 0 ? Math.sin(reactionProgress * Math.PI * 2) * 0.11 : 0;
+      const idleBounce = Math.max(0, Math.sin(time * 2.45)) * 0.075;
+
+      humanSlot.position.y = Math.sin(time * 1.15) * 0.018;
+      humanSlot.rotation.y = Math.sin(time * 0.38) * 0.025;
+      pokemonSlot.position.y = idleBounce + jump;
+      pokemonSlot.rotation.z = Math.sin(time * 1.7) * 0.035 - recoil;
+      pokemonSlot.rotation.x = Math.sin(time * 1.15) * 0.018;
+      pokemonSlot.scale.set(1 + recoil * 0.24, 1 - recoil * 0.18, 1 + recoil * 0.24);
+
+      electricField.userData.intensity = Math.max(0.12, electricField.userData.intensity - delta * 0.78);
+      electricField.position.y = 1.25 + idleBounce + jump;
+      electricField.rotation.y += delta * (0.2 + electricField.userData.intensity * 1.4);
+      electricField.userData.materials.forEach((material, index) => {
+        material.opacity = (0.035 + electricField.userData.intensity * 0.5) * (0.58 + Math.sin(time * 9 + index) * 0.42);
+      });
+      const shockwave = electricField.userData.shockwave;
+      if (reactionProgress >= 0) {
+        shockwave.visible = true;
+        shockwave.scale.setScalar(0.7 + reactionProgress * 2.2);
+        shockwave.material.opacity = Math.sin(reactionProgress * Math.PI) * 0.78;
+      } else {
+        shockwave.visible = false;
       }
-      if (partner.userData.preview) {
-        partner.position.y = 0.1 + Math.sin(time * 2.1) * 0.09;
-        partner.rotation.y = -0.08 + Math.sin(time * 0.8) * 0.13;
-      }
-      stage.children[1].rotation.z += delta * 0.08;
+
+      stage.children[2].rotation.z += delta * 0.09;
+      stage.children[2].material.opacity = 0.63 + Math.sin(time * 2.1) * 0.14;
       worldParticles.rotation.y -= delta * 0.035;
       worldParticles.position.y = Math.sin(time * 0.6) * 0.08;
     }
@@ -581,6 +701,10 @@ async function createThreeScene() {
     pause() {
       visible = false;
     },
+    celebrate(strength = 1.2) {
+      focus('pokemon');
+      triggerPartnerReaction(strength);
+    },
   };
 }
 
@@ -590,8 +714,26 @@ dom.toggleAudio.addEventListener('click', () => {
   dom.toggleAudio.setAttribute('aria-label', dom.backgroundVideo.muted ? 'Enable background video sound' : 'Mute background video');
 });
 
+dom.duoPanel.addEventListener('pointermove', (event) => {
+  if (event.pointerType === 'touch') return;
+  const rect = dom.duoPanel.getBoundingClientRect();
+  const x = (event.clientX - rect.left) / rect.width - 0.5;
+  const y = (event.clientY - rect.top) / rect.height - 0.5;
+  dom.duoPanel.style.setProperty('--tilt-x', `${(-y * 2.2).toFixed(2)}deg`);
+  dom.duoPanel.style.setProperty('--tilt-y', `${(x * 3).toFixed(2)}deg`);
+  dom.duoPanel.style.setProperty('--glow-x', `${((x + 0.5) * 100).toFixed(1)}%`);
+  dom.duoPanel.style.setProperty('--glow-y', `${((y + 0.5) * 100).toFixed(1)}%`);
+});
+
+dom.duoPanel.addEventListener('pointerleave', () => {
+  dom.duoPanel.style.setProperty('--tilt-x', '0deg');
+  dom.duoPanel.style.setProperty('--tilt-y', '0deg');
+});
+
 dom.saveMoment.addEventListener('click', () => {
   localStorage.setItem('pokimation:last-memory', new Date().toISOString());
+  sceneApi?.celebrate(1.5);
+  dom.toast.querySelector('p').textContent = 'Pikachu confirmed! Your partner is ready to move.';
   dom.toast.classList.add('is-visible');
   clearTimeout(toastTimer);
   toastTimer = window.setTimeout(() => dom.toast.classList.remove('is-visible'), 2800);
