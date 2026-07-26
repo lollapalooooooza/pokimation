@@ -16,7 +16,7 @@ const dom = {
   input: document.querySelector('#image-input'),
   dropZone: document.querySelector('#drop-zone'),
   error: document.querySelector('#upload-error'),
-  demo: document.querySelector('#demo-button'),
+  exampleButtons: [...document.querySelectorAll('[data-example]')],
   uploadAgain: document.querySelector('#upload-again-top'),
   memoryImage: document.querySelector('#memory-image'),
   memoryDate: document.querySelector('#memory-date'),
@@ -28,6 +28,7 @@ const dom = {
   toggleMotion: document.querySelector('#toggle-motion'),
   resetCamera: document.querySelector('#reset-camera'),
   toggleAudio: document.querySelector('#toggle-audio'),
+  backgroundImage: document.querySelector('#background-image'),
   backgroundVideo: document.querySelector('#background-video'),
   duoPanel: document.querySelector('.duo-panel'),
   moveButtons: [...document.querySelectorAll('[data-move]')],
@@ -36,6 +37,9 @@ const dom = {
 };
 
 let selectedImageUrl = '';
+let activeSceneKey = 'bigFish';
+let activeSceneConfig = null;
+let assetManifest = null;
 let transitionRunning = false;
 let sceneReady = false;
 let sceneApi = null;
@@ -53,16 +57,35 @@ function validateImage(file) {
   return '';
 }
 
-function setMemoryImage(url, label) {
+function setMemoryImage(url, label, sceneKey) {
   if (selectedImageUrl && selectedImageUrl.startsWith('blob:')) URL.revokeObjectURL(selectedImageUrl);
   selectedImageUrl = url;
+  activeSceneKey = sceneKey;
   dom.memoryImage.src = url;
-  dom.memoryImage.alt = `${label || 'Uploaded'} original card memory`;
+  dom.memoryImage.alt = `${label || 'Uploaded'} original memory`;
   dom.memoryDate.textContent = new Intl.DateTimeFormat('en', {
     month: 'short',
     day: '2-digit',
     year: 'numeric',
   }).format(new Date());
+}
+
+function readImageSize(url) {
+  return new Promise((resolve, reject) => {
+    const image = new Image();
+    image.onload = () => resolve({ width: image.naturalWidth, height: image.naturalHeight });
+    image.onerror = () => reject(new Error('The selected image could not be read.'));
+    image.src = url;
+  });
+}
+
+async function matchSceneForImage(url, file) {
+  const fileName = file.name.toLowerCase();
+  if (fileName.includes('big-fish') || fileName.includes('afa4a807')) return 'bigFish';
+  if (fileName.includes('pokemon') || fileName.includes('pikachu')) return 'pikachu';
+
+  const { width, height } = await readImageSize(url);
+  return width / height < 1 ? 'bigFish' : 'pikachu';
 }
 
 async function acceptFile(file) {
@@ -73,7 +96,15 @@ async function acceptFile(file) {
   }
 
   showError();
-  setMemoryImage(URL.createObjectURL(file), file.name.replace(/\.[^.]+$/, ''));
+  const imageUrl = URL.createObjectURL(file);
+  try {
+    const sceneKey = await matchSceneForImage(imageUrl, file);
+    setMemoryImage(imageUrl, file.name.replace(/\.[^.]+$/, ''), sceneKey);
+  } catch (imageError) {
+    URL.revokeObjectURL(imageUrl);
+    showError(imageError.message);
+    return;
+  }
   await enterWorld();
 }
 
@@ -96,10 +127,17 @@ dom.dropZone.addEventListener('keydown', (event) => {
 });
 dom.input.addEventListener('change', () => acceptFile(dom.input.files[0]));
 dom.uploadForm.addEventListener('submit', (event) => event.preventDefault());
-dom.demo.addEventListener('click', async () => {
-  setMemoryImage(resolveAsset('assets/original/pokemon.jpg'), 'Golden Gate Pikachu');
+dom.exampleButtons.forEach((button) => button.addEventListener('click', async () => {
+  const manifest = await getAssetConfig();
+  const sceneKey = button.dataset.example;
+  const config = manifest.scenes?.[sceneKey];
+  if (!config) {
+    showError('That featured memory is unavailable right now.');
+    return;
+  }
+  setMemoryImage(resolveAsset(config.originalImage), config.name, sceneKey);
   await enterWorld();
-});
+}));
 
 async function enterWorld() {
   if (transitionRunning) return;
@@ -122,6 +160,8 @@ async function enterWorld() {
   if (!sceneReady) {
     sceneApi = await createThreeScene();
     sceneReady = true;
+  } else {
+    await sceneApi.load(activeSceneKey);
   }
   sceneApi.resize();
   sceneApi.play();
@@ -594,14 +634,72 @@ function createPikachuDeformer(model) {
 }
 
 async function getAssetConfig() {
+  if (assetManifest) return assetManifest;
   try {
     const response = await fetch(resolveAsset('assets/scene-config.json'));
     if (!response.ok) throw new Error('Missing scene config');
-    return await response.json();
+    assetManifest = await response.json();
+    return assetManifest;
   } catch (error) {
     console.warn('Pokimation is using preview scene assets.', error);
-    return {};
+    assetManifest = { scenes: {} };
+    return assetManifest;
   }
+}
+
+function setText(selector, value) {
+  const element = document.querySelector(selector);
+  if (element && value !== undefined) element.textContent = value;
+}
+
+function applySceneContent(sceneKey, config) {
+  activeSceneKey = sceneKey;
+  activeSceneConfig = config;
+  dom.experienceView.dataset.scene = sceneKey;
+
+  setText('#scene-title', config.sceneTitle);
+  setText('#scene-subtitle', config.sceneSubtitle);
+  setText('#memory-caption', config.memoryCaption);
+  setText('#trainer-id', config.trainerId);
+  setText('#capture-label', config.captureLabel);
+  setText('#bond-value', config.bondValue);
+  setText('#memory-verified', config.verifiedLabel);
+  setText('#partner-number', config.number);
+  setText('#partner-name', config.name);
+  setText('#partner-gender', config.gender);
+  setText('#partner-rarity', config.rarity);
+  setText('#type-icon', config.typeIcon);
+  setText('#partner-type', config.type);
+  setText('#partner-level', config.level);
+  setText('#partner-hp', config.hp);
+  setText('#partner-height', config.height);
+  setText('#partner-weight', config.weight);
+  setText('#scene-tip', config.tip);
+  setText('#confirm-label', config.confirmLabel);
+
+  const filledStars = Math.max(0, Math.min(5, Number(config.stars) || 0));
+  const stars = document.querySelector('#partner-stars');
+  stars.setAttribute('aria-label', `${filledStars} out of five stars`);
+  stars.innerHTML = `${'★ '.repeat(filledStars)}${filledStars < 5 ? `<i>${'★ '.repeat(5 - filledStars)}</i>` : ''}`.trim();
+
+  document.querySelectorAll('[data-stat]').forEach((row, index) => {
+    const stat = config.stats?.[index];
+    if (!stat) return;
+    row.querySelector(':scope > span > i').textContent = stat.icon;
+    row.querySelector(':scope > span > em').textContent = stat.label;
+    row.querySelector(':scope > b > em').style.setProperty('--value', `${stat.value}%`);
+    row.querySelector(':scope > strong').textContent = stat.value;
+  });
+
+  dom.moveButtons.forEach((button, index) => {
+    const move = config.moves?.[index];
+    if (!move) return;
+    button.dataset.move = move.id;
+    button.querySelector('i').textContent = move.icon;
+    button.querySelector('span').textContent = move.name;
+    button.querySelector('b').textContent = move.pp;
+    button.classList.remove('is-active');
+  });
 }
 
 async function createThreeScene() {
@@ -672,14 +770,6 @@ async function createThreeScene() {
   let partnerReactionAt = -10;
   let partnerReactionStrength = 0;
 
-  const config = await getAssetConfig();
-  if (config.backgroundVideo) {
-    dom.backgroundVideo.src = resolveAsset(config.backgroundVideo);
-    dom.backgroundVideo.load();
-    dom.backgroundVideo.play().catch(() => {});
-    dom.toggleAudio.disabled = false;
-  }
-
   const draco = new DRACOLoader();
   draco.setDecoderPath(resolveAsset('draco/'));
   const loader = new GLTFLoader();
@@ -711,7 +801,7 @@ async function createThreeScene() {
         const mixer = new THREE.AnimationMixer(model);
         mixer.clipAction(gltf.animations[0]).play();
         mixers.push(mixer);
-      } else if (label === 'Pokémon') {
+      } else if (label === 'partner') {
         proceduralMotion = createPikachuDeformer(model);
       }
       return { loaded: true, animated: gltf.animations.length > 0, proceduralMotion };
@@ -721,12 +811,63 @@ async function createThreeScene() {
     }
   }
 
-  const results = await Promise.all([
-    replacePreview(humanSlot, config.humanModel, 4.14, -1.2, 'human', config.humanRotationY),
-    replacePreview(pokemonSlot, config.pokemonModel, 2.82, 1.25, 'Pokémon', config.pokemonRotationY),
-  ]);
-  const partnerMotion = results[1].proceduralMotion;
-  renderer.domElement.dataset.partnerMotion = results[1].animated ? 'skeletal' : partnerMotion ? 'procedural-deform' : 'procedural';
+  let partnerMotion = null;
+
+  async function loadScene(sceneKey) {
+    const manifest = await getAssetConfig();
+    const resolvedKey = manifest.scenes?.[sceneKey] ? sceneKey : manifest.defaultScene;
+    const config = manifest.scenes?.[resolvedKey];
+    if (!config) return;
+
+    applySceneContent(resolvedKey, config);
+    mixers.splice(0).forEach((mixer) => mixer.stopAllAction());
+
+    dom.backgroundVideo.pause();
+    dom.backgroundVideo.hidden = true;
+    dom.backgroundImage.hidden = true;
+    dom.toggleAudio.disabled = true;
+    dom.toggleAudio.classList.remove('is-active');
+    dom.backgroundVideo.muted = true;
+
+    if (config.backgroundImage) {
+      dom.backgroundImage.src = resolveAsset(config.backgroundImage);
+      dom.backgroundImage.hidden = false;
+    } else if (config.backgroundVideo) {
+      dom.backgroundVideo.src = resolveAsset(config.backgroundVideo);
+      dom.backgroundVideo.hidden = false;
+      dom.backgroundVideo.load();
+      dom.backgroundVideo.play().catch(() => {});
+      dom.toggleAudio.disabled = false;
+    }
+
+    const results = await Promise.all([
+      replacePreview(
+        humanSlot,
+        config.humanModel,
+        config.humanHeight || 4.14,
+        config.humanX ?? -1.2,
+        'human',
+        config.humanRotationY || 0,
+      ),
+      replacePreview(
+        pokemonSlot,
+        config.partnerModel,
+        config.partnerHeight || 2.82,
+        config.partnerX ?? 1.25,
+        'partner',
+        config.partnerRotationY || 0,
+      ),
+    ]);
+    partnerMotion = results[1].proceduralMotion;
+    renderer.domElement.dataset.partnerMotion = results[1].animated
+      ? 'skeletal'
+      : partnerMotion
+        ? 'procedural-deform'
+        : 'procedural';
+    renderer.domElement.setAttribute('aria-label', `Interactive 3D preview of the trainer and ${config.name}`);
+  }
+
+  await loadScene(activeSceneKey);
 
   function resize() {
     const rect = dom.threeRoot.getBoundingClientRect();
@@ -764,7 +905,7 @@ async function createThreeScene() {
   dom.focusButtons.forEach((button) => button.addEventListener('click', () => focus(button.dataset.focus)));
   dom.moveButtons.forEach((button) => button.addEventListener('click', () => {
     dom.moveButtons.forEach((moveButton) => moveButton.classList.toggle('is-active', moveButton === button));
-    triggerPartnerReaction(button.dataset.move === 'thunderbolt' ? 1.35 : 1);
+    triggerPartnerReaction(button === dom.moveButtons[0] ? 1.35 : 1);
   }));
   let pointerOrigin = null;
   renderer.domElement.addEventListener('pointerdown', (event) => {
@@ -861,9 +1002,10 @@ async function createThreeScene() {
 
   return {
     resize,
+    load: loadScene,
     play() {
       visible = true;
-      dom.backgroundVideo.play().catch(() => {});
+      if (!dom.backgroundVideo.hidden) dom.backgroundVideo.play().catch(() => {});
     },
     pause() {
       visible = false;
@@ -876,6 +1018,7 @@ async function createThreeScene() {
 }
 
 dom.toggleAudio.addEventListener('click', () => {
+  if (dom.backgroundVideo.hidden) return;
   dom.backgroundVideo.muted = !dom.backgroundVideo.muted;
   dom.toggleAudio.classList.toggle('is-active', !dom.backgroundVideo.muted);
   dom.toggleAudio.setAttribute('aria-label', dom.backgroundVideo.muted ? 'Enable background video sound' : 'Mute background video');
@@ -900,7 +1043,7 @@ dom.duoPanel.addEventListener('pointerleave', () => {
 dom.saveMoment.addEventListener('click', () => {
   localStorage.setItem('pokimation:last-memory', new Date().toISOString());
   sceneApi?.celebrate(1.5);
-  dom.toast.querySelector('p').textContent = 'Pikachu confirmed! Your partner is ready to move.';
+  dom.toast.querySelector('p').textContent = activeSceneConfig?.confirmedToast || 'Partner confirmed!';
   dom.toast.classList.add('is-visible');
   clearTimeout(toastTimer);
   toastTimer = window.setTimeout(() => dom.toast.classList.remove('is-visible'), 2800);

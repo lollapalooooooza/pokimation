@@ -6,13 +6,13 @@
     <meta name="theme-color" content="#f8f4e8" />
     <meta
       name="description"
-      content="Pokimation turns a photo of you holding a Pokémon card into an interactive anime-inspired 3D memory."
+      content="Pokimation turns a favorite photo into an interactive anime-inspired 3D memory with the right trainer and partner."
     />
     <meta property="og:type" content="website" />
     <meta property="og:title" content="Pokimation — Your card, alive" />
     <meta
       property="og:description"
-      content="Drop a favorite card photo and step into an interactive 3D scene with your partner."
+      content="Drop a favorite photo and step into an interactive 3D scene with your partner."
     />
     <meta property="og:image" content="/assets/original/pokemon.jpg" />
     <meta name="twitter:card" content="summary_large_image" />
@@ -48,10 +48,10 @@
 
           <div class="upload-copy">
             <p class="eyebrow"><span></span> A little memory becomes a big adventure</p>
-            <h1 id="upload-title" tabindex="-1">Bring your<br /><em>card moment</em> to life.</h1>
+            <h1 id="upload-title" tabindex="-1">Bring your<br /><em>best moment</em> to life.</h1>
             <p class="lede">
-              Upload a photo of you holding your favorite Pokémon card. Pokimation opens it as an
-              interactive 3D scene for you and your partner.
+              Upload a favorite catch or card photo. Pokimation matches the memory to its trainer
+              and partner, then opens the pair as an interactive 3D scene.
             </p>
             <div class="story-steps" aria-label="How Pokimation works">
               <span><b>01</b> Drop a photo</span>
@@ -84,15 +84,28 @@
               </label>
               <p id="upload-error" class="upload-error" role="alert"></p>
             </form>
-            <button id="demo-button" class="demo-button" type="button">
-              No photo yet? <span>Open the featured memory</span>
-            </button>
+            <div class="featured-memories" aria-label="Featured memories">
+              <p>Or jump into a featured memory</p>
+              <div class="featured-memory-grid">
+                <button class="featured-memory is-new" type="button" data-example="bigFish">
+                  <img src="/assets/original/big-fish.jpg" alt="A fisherman holding his catch" />
+                  <span><small>New · Deep Blue</small><strong>Big Fish</strong></span>
+                  <b aria-hidden="true">↗</b>
+                </button>
+                <button class="featured-memory" type="button" data-example="pikachu">
+                  <img src="/assets/original/pokemon.jpg" alt="A trainer holding a Pikachu card" />
+                  <span><small>Golden Gate</small><strong>Pikachu</strong></span>
+                  <b aria-hidden="true">↗</b>
+                </button>
+              </div>
+            </div>
             <p class="privacy-note"><span aria-hidden="true">◈</span> Your image stays in this browser.</p>
           </div>
         </section>
 
         <section id="experience-view" class="view experience-view" aria-labelledby="scene-title" aria-hidden="true">
           <div class="scene-backdrop" aria-hidden="true">
+            <img id="background-image" alt="" />
             <video id="background-video" muted loop playsinline preload="metadata"></video>
             <div class="scene-gradient"></div>
             <div class="speed-lines"></div>
@@ -105,7 +118,7 @@
             <div class="select-heading">
               <div>
                 <h1 id="scene-title" tabindex="-1">Trainer Select</h1>
-                <p>Choose your partner and start your journey! <b aria-hidden="true">ϟ</b></p>
+                <p><span id="scene-subtitle">Choose your partner and start your journey!</span> <b aria-hidden="true">ϟ</b></p>
               </div>
             </div>
           </div>
@@ -115,16 +128,16 @@
             <figure class="memory-photo">
               <img id="memory-image" alt="Your uploaded Pokémon card memory" />
               <figcaption>
-                <span>Golden Gate file</span>
+                <span id="memory-caption">Golden Gate file</span>
                 <time id="memory-date"></time>
               </figcaption>
             </figure>
             <div class="file-readout">
-              <span><small>Trainer ID</small><b>SF-025</b></span>
-              <span><small>Capture</small><b>Original</b></span>
-              <span><small>Bond</small><b>88%</b></span>
+              <span><small>Trainer ID</small><b id="trainer-id">SF-025</b></span>
+              <span><small>Capture</small><b id="capture-label">Original</b></span>
+              <span><small>Bond</small><b id="bond-value">88%</b></span>
             </div>
-            <p><i aria-hidden="true">✓</i> Full original memory verified</p>
+            <p><i aria-hidden="true">✓</i> <span id="memory-verified">Full original memory verified</span></p>
           </aside>
 
           <section class="world-panel" aria-label="Interactive 3D character and Pokémon scene">
@@ -143,28 +156,28 @@
             <div class="electric-aura" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
             <header class="partner-header">
               <span class="mini-ball partner-ball" aria-hidden="true"></span>
-              <div><small>No. 025</small><h2>Pikachu <b>♂</b></h2></div>
-              <span class="rarity">Rare</span>
+              <div><small id="partner-number">No. 025</small><h2><span id="partner-name">Pikachu</span> <b id="partner-gender">♂</b></h2></div>
+              <span id="partner-rarity" class="rarity">Rare</span>
             </header>
             <div class="type-row">
-              <span>Type</span><strong><i aria-hidden="true">ϟ</i> Electric</strong>
+              <span>Type</span><strong><i id="type-icon" aria-hidden="true">ϟ</i> <span id="partner-type">Electric</span></strong>
             </div>
             <div class="level-row">
-              <strong>Lv. 25</strong>
-              <span aria-label="Three out of five stars">★ ★ ★ <i>★ ★</i></span>
+              <strong id="partner-level">Lv. 25</strong>
+              <span id="partner-stars" aria-label="Three out of five stars">★ ★ ★ <i>★ ★</i></span>
             </div>
             <div class="hp-readout">
-              <span>HP</span><i><b></b></i><strong>65 / 65</strong>
+              <span>HP</span><i><b></b></i><strong id="partner-hp">65 / 65</strong>
             </div>
             <div class="profile-grid">
-              <span><small>Height</small><b>0.4 m</b></span>
-              <span><small>Weight</small><b>6.0 kg</b></span>
+              <span><small>Height</small><b id="partner-height">0.4 m</b></span>
+              <span><small>Weight</small><b id="partner-weight">6.0 kg</b></span>
             </div>
             <div class="stat-list" aria-label="Partner statistics">
-              <div><span><i>⚔</i> Attack</span><b><em style="--value: 78%"></em></b><strong>78</strong></div>
-              <div><span><i>➤</i> Speed</span><b><em style="--value: 92%"></em></b><strong>92</strong></div>
-              <div><span><i>✦</i> Agility</span><b><em style="--value: 88%"></em></b><strong>88</strong></div>
-              <div><span><i>♥</i> Bond</span><b><em style="--value: 85%"></em></b><strong>85</strong></div>
+              <div data-stat="0"><span><i>⚔</i> <em>Attack</em></span><b><em style="--value: 78%"></em></b><strong>78</strong></div>
+              <div data-stat="1"><span><i>➤</i> <em>Speed</em></span><b><em style="--value: 92%"></em></b><strong>92</strong></div>
+              <div data-stat="2"><span><i>✦</i> <em>Agility</em></span><b><em style="--value: 88%"></em></b><strong>88</strong></div>
+              <div data-stat="3"><span><i>♥</i> <em>Bond</em></span><b><em style="--value: 85%"></em></b><strong>85</strong></div>
             </div>
             <div class="moves-card">
               <h3>Moves <span>PP</span></h3>
@@ -173,12 +186,12 @@
               <button type="button" data-move="electro-ball"><i>ϟ</i><span>Electro Ball</span><b>10/10</b></button>
             </div>
             <button id="save-moment" class="primary-button" type="button">
-              <span>Confirm Partner</span><b class="button-ball" aria-hidden="true"><i></i></b>
+              <span id="confirm-label">Confirm Partner</span><b class="button-ball" aria-hidden="true"><i></i></b>
             </button>
           </aside>
 
           <div class="experience-footer">
-            <span><b>Tip</b> Select Pikachu or a move to trigger a reaction</span>
+            <span><b>Tip</b> <span id="scene-tip">Select Pikachu or a move to trigger a reaction</span></span>
             <div class="scene-actions">
               <button id="toggle-motion" type="button" aria-label="Pause scene animation">Ⅱ</button>
               <button id="reset-camera" type="button" aria-label="Reset 3D camera">↺</button>
