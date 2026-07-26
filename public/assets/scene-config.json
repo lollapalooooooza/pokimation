@@ -1,5 +1,94 @@
 {
-  "humanModel": null,
-  "pokemonModel": null,
-  "backgroundVideo": null
+  "defaultScene": "bigFish",
+  "scenes": {
+    "bigFish": {
+      "originalImage": "assets/original/big-fish.jpg",
+      "humanModel": "assets/models/human/big-fish-trainer-idle.glb",
+      "humanRotationY": 0,
+      "humanHeight": 4.05,
+      "humanX": -1.25,
+      "partnerModel": "assets/models/pokemon/big-fish.glb",
+      "partnerRotationY": 0,
+      "partnerHeight": 2.55,
+      "partnerX": 1.35,
+      "backgroundVideo": "assets/video/deep-blue-boat-loop.mp4",
+      "backgroundPoster": "assets/backgrounds/deep-blue-boat.png",
+      "sceneTitle": "Catch Select",
+      "sceneSubtitle": "Reel in your partner and start the deep-blue adventure!",
+      "memoryCaption": "Deep Blue file",
+      "trainerId": "SEA-042",
+      "captureLabel": "Wild Catch",
+      "bondValue": "94%",
+      "verifiedLabel": "Original catch memory verified",
+      "number": "No. 404",
+      "name": "Big Fish",
+      "gender": "♂",
+      "rarity": "Legendary",
+      "type": "Water",
+      "typeIcon": "≈",
+      "level": "Lv. 42",
+      "stars": 5,
+      "hp": "128 / 128",
+      "height": "1.2 m",
+      "weight": "38.6 kg",
+      "stats": [
+        { "icon": "⚔", "label": "Power", "value": 91 },
+        { "icon": "➤", "label": "Speed", "value": 64 },
+        { "icon": "≈", "label": "Splash", "value": 96 },
+        { "icon": "♥", "label": "Bond", "value": 94 }
+      ],
+      "moves": [
+        { "id": "tidal-surge", "icon": "≈", "name": "Tidal Surge", "pp": "10/10" },
+        { "id": "fin-slap", "icon": "◒", "name": "Fin Slap", "pp": "25/25" },
+        { "id": "deep-dive", "icon": "↓", "name": "Deep Dive", "pp": "15/15" }
+      ],
+      "tip": "Select Big Fish or a move to trigger a splash reaction",
+      "confirmLabel": "Confirm Big Fish",
+      "confirmedToast": "Big Fish confirmed! Your deep-blue partner is ready."
+    },
+    "pikachu": {
+      "originalImage": "assets/original/pokemon.jpg",
+      "humanModel": "assets/models/human/trainer-happy-jump.glb",
+      "humanRotationY": -0.7853981634,
+      "humanHeight": 4.14,
+      "humanX": -1.2,
+      "partnerModel": "assets/models/pokemon/pikachu.glb",
+      "partnerRotationY": -0.7853981634,
+      "partnerHeight": 2.82,
+      "partnerX": 1.25,
+      "backgroundVideo": "assets/video/golden-gate-anime-v2.mp4",
+      "sceneTitle": "Trainer Select",
+      "sceneSubtitle": "Choose your partner and start your journey!",
+      "memoryCaption": "Golden Gate file",
+      "trainerId": "SF-025",
+      "captureLabel": "Original",
+      "bondValue": "88%",
+      "verifiedLabel": "Full original memory verified",
+      "number": "No. 025",
+      "name": "Pikachu",
+      "gender": "♂",
+      "rarity": "Rare",
+      "type": "Electric",
+      "typeIcon": "ϟ",
+      "level": "Lv. 25",
+      "stars": 3,
+      "hp": "65 / 65",
+      "height": "0.4 m",
+      "weight": "6.0 kg",
+      "stats": [
+        { "icon": "⚔", "label": "Attack", "value": 78 },
+        { "icon": "➤", "label": "Speed", "value": 92 },
+        { "icon": "✦", "label": "Agility", "value": 88 },
+        { "icon": "♥", "label": "Bond", "value": 85 }
+      ],
+      "moves": [
+        { "id": "thunderbolt", "icon": "ϟ", "name": "Thunderbolt", "pp": "15/15" },
+        { "id": "quick-attack", "icon": "✦", "name": "Quick Attack", "pp": "30/30" },
+        { "id": "electro-ball", "icon": "ϟ", "name": "Electro Ball", "pp": "10/10" }
+      ],
+      "tip": "Select Pikachu or a move to trigger a reaction",
+      "confirmLabel": "Confirm Partner",
+      "confirmedToast": "Pikachu confirmed! Your partner is ready to move."
+    }
+  }
 }

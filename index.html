@@ -6,14 +6,15 @@
     <meta name="theme-color" content="#f8f4e8" />
     <meta
       name="description"
-      content="Pokimation turns a photo of you holding a Pokémon card into an interactive anime-inspired 3D memory."
+      content="Pokimation turns a favorite photo into an interactive anime-inspired 3D memory with the right trainer and partner."
     />
     <meta property="og:type" content="website" />
     <meta property="og:title" content="Pokimation — Your card, alive" />
     <meta
       property="og:description"
-      content="Drop a favorite card photo and step into an interactive 3D scene with your partner."
+      content="Drop a favorite photo and step into an interactive 3D scene with your partner."
     />
+    <meta property="og:image" content="/assets/original/pokemon.jpg" />
     <meta name="twitter:card" content="summary_large_image" />
     <title>Pokimation — Your card, alive</title>
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='28' fill='%23ff5b52'/%3E%3Cpath d='M4 32h56a28 28 0 0 1-56 0Z' fill='%23fffaf0'/%3E%3Ccircle cx='32' cy='32' r='9' fill='%231e2a44'/%3E%3Ccircle cx='32' cy='32' r='4' fill='%23fffaf0'/%3E%3C/svg%3E" />
@@ -47,10 +48,10 @@
 
           <div class="upload-copy">
             <p class="eyebrow"><span></span> A little memory becomes a big adventure</p>
-            <h1 id="upload-title" tabindex="-1">Bring your<br /><em>card moment</em> to life.</h1>
+            <h1 id="upload-title" tabindex="-1">Bring your<br /><em>best moment</em> to life.</h1>
             <p class="lede">
-              Upload a photo of you holding your favorite Pokémon card. Pokimation opens it as an
-              interactive 3D scene for you and your partner.
+              Upload a favorite catch or card photo. Pokimation matches the memory to its trainer
+              and partner, then opens the pair as an interactive 3D scene.
             </p>
             <div class="story-steps" aria-label="How Pokimation works">
               <span><b>01</b> Drop a photo</span>
@@ -83,44 +84,65 @@
               </label>
               <p id="upload-error" class="upload-error" role="alert"></p>
             </form>
-            <button id="demo-button" class="demo-button" type="button">
-              No photo yet? <span>Preview the magic</span>
-            </button>
+            <div class="featured-memories" aria-label="Featured memories">
+              <p>Or jump into a featured memory</p>
+              <div class="featured-memory-grid">
+                <button class="featured-memory is-new" type="button" data-example="bigFish">
+                  <img src="/assets/original/big-fish.jpg" alt="A fisherman holding his catch" />
+                  <span><small>New · Deep Blue</small><strong>Big Fish</strong></span>
+                  <b aria-hidden="true">↗</b>
+                </button>
+                <button class="featured-memory" type="button" data-example="pikachu">
+                  <img src="/assets/original/pokemon.jpg" alt="A trainer holding a Pikachu card" />
+                  <span><small>Golden Gate</small><strong>Pikachu</strong></span>
+                  <b aria-hidden="true">↗</b>
+                </button>
+              </div>
+            </div>
             <p class="privacy-note"><span aria-hidden="true">◈</span> Your image stays in this browser.</p>
           </div>
         </section>
 
         <section id="experience-view" class="view experience-view" aria-labelledby="scene-title" aria-hidden="true">
           <div class="scene-backdrop" aria-hidden="true">
+            <img id="background-image" alt="" />
             <video id="background-video" muted loop playsinline preload="metadata"></video>
             <div class="scene-gradient"></div>
             <div class="speed-lines"></div>
+            <div class="ground-haze"></div>
           </div>
 
+          <div id="three-root" class="three-root"></div>
+
           <div class="experience-heading">
-            <p class="eyebrow"><span></span> Memory synchronized</p>
-            <h1 id="scene-title" tabindex="-1">Your adventure<br />starts <em>together.</em></h1>
+            <div class="select-heading">
+              <div>
+                <h1 id="scene-title" tabindex="-1">Trainer Select</h1>
+                <p><span id="scene-subtitle">Choose your partner and start your journey!</span> <b aria-hidden="true">ϟ</b></p>
+              </div>
+            </div>
           </div>
 
           <aside class="memory-panel" aria-label="Uploaded original image">
-            <div class="panel-label"><span>01</span> Original memory</div>
+            <div class="panel-label"><span class="mini-ball" aria-hidden="true"></span> Trainer files <b>Active</b></div>
             <figure class="memory-photo">
               <img id="memory-image" alt="Your uploaded Pokémon card memory" />
               <figcaption>
-                <span>Trainer archive</span>
+                <span id="memory-caption">Golden Gate file</span>
                 <time id="memory-date"></time>
               </figcaption>
             </figure>
-            <p>We keep the full original image—never a cropped thumbnail.</p>
+            <div class="file-readout">
+              <span><small>Trainer ID</small><b id="trainer-id">SF-025</b></span>
+              <span><small>Capture</small><b id="capture-label">Original</b></span>
+              <span><small>Bond</small><b id="bond-value">88%</b></span>
+            </div>
+            <p><i aria-hidden="true">✓</i> <span id="memory-verified">Full original memory verified</span></p>
           </aside>
 
           <section class="world-panel" aria-label="Interactive 3D character and Pokémon scene">
-            <div class="world-topline">
-              <span class="live-chip"><i></i> 3D scene live</span>
-              <span id="asset-status">Preview companions active</span>
-            </div>
-            <div id="three-root" class="three-root"></div>
-            <div class="orbit-hint" aria-hidden="true"><i>↔</i> drag to orbit</div>
+            <div class="scene-reticle" aria-hidden="true"><i></i><b></b></div>
+            <div class="orbit-hint" aria-hidden="true"><i>↔</i> Drag to orbit <b>•</b> Scroll to zoom</div>
             <div class="world-spark world-spark-one" aria-hidden="true">✦</div>
             <div class="world-spark world-spark-two" aria-hidden="true">✧</div>
             <div class="focus-switcher" aria-label="Scene focus">
@@ -131,32 +153,45 @@
           </section>
 
           <aside class="duo-panel" aria-label="Duo story details">
-            <div class="panel-label"><span>02</span> Your duo</div>
-            <p class="chapter">Chapter 001</p>
-            <h2>A wild memory<br />appeared!</h2>
-            <p class="duo-copy">
-              One photo. Two companions. A whole new world waiting just beyond the card frame.
-            </p>
-            <div class="bond-card">
-              <div>
-                <span>Partner bond</span>
-                <strong>First encounter</strong>
-              </div>
-              <b>88<small>%</small></b>
-              <i><span></span></i>
+            <div class="electric-aura" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+            <header class="partner-header">
+              <span class="mini-ball partner-ball" aria-hidden="true"></span>
+              <div><small id="partner-number">No. 025</small><h2><span id="partner-name">Pikachu</span> <b id="partner-gender">♂</b></h2></div>
+              <span id="partner-rarity" class="rarity">Rare</span>
+            </header>
+            <div class="type-row">
+              <span>Type</span><strong><i id="type-icon" aria-hidden="true">ϟ</i> <span id="partner-type">Electric</span></strong>
             </div>
-            <dl class="scene-meta">
-              <div><dt>Scene</dt><dd>Golden meadow</dd></div>
-              <div><dt>Mood</dt><dd>Curious</dd></div>
-              <div><dt>Weather</dt><dd>Soft sun</dd></div>
-            </dl>
+            <div class="level-row">
+              <strong id="partner-level">Lv. 25</strong>
+              <span id="partner-stars" aria-label="Three out of five stars">★ ★ ★ <i>★ ★</i></span>
+            </div>
+            <div class="hp-readout">
+              <span>HP</span><i><b></b></i><strong id="partner-hp">65 / 65</strong>
+            </div>
+            <div class="profile-grid">
+              <span><small>Height</small><b id="partner-height">0.4 m</b></span>
+              <span><small>Weight</small><b id="partner-weight">6.0 kg</b></span>
+            </div>
+            <div class="stat-list" aria-label="Partner statistics">
+              <div data-stat="0"><span><i>⚔</i> <em>Attack</em></span><b><em style="--value: 78%"></em></b><strong>78</strong></div>
+              <div data-stat="1"><span><i>➤</i> <em>Speed</em></span><b><em style="--value: 92%"></em></b><strong>92</strong></div>
+              <div data-stat="2"><span><i>✦</i> <em>Agility</em></span><b><em style="--value: 88%"></em></b><strong>88</strong></div>
+              <div data-stat="3"><span><i>♥</i> <em>Bond</em></span><b><em style="--value: 85%"></em></b><strong>85</strong></div>
+            </div>
+            <div class="moves-card">
+              <h3>Moves <span>PP</span></h3>
+              <button type="button" data-move="thunderbolt"><i>ϟ</i><span>Thunderbolt</span><b>15/15</b></button>
+              <button type="button" data-move="quick-attack"><i>✦</i><span>Quick Attack</span><b>30/30</b></button>
+              <button type="button" data-move="electro-ball"><i>ϟ</i><span>Electro Ball</span><b>10/10</b></button>
+            </div>
             <button id="save-moment" class="primary-button" type="button">
-              <span>Save this moment</span><b aria-hidden="true">✦</b>
+              <span id="confirm-label">Confirm Partner</span><b class="button-ball" aria-hidden="true"><i></i></b>
             </button>
           </aside>
 
           <div class="experience-footer">
-            <span><b>Tip</b> Scroll to zoom · drag to look around</span>
+            <span><b>Tip</b> <span id="scene-tip">Select Pikachu or a move to trigger a reaction</span></span>
             <div class="scene-actions">
               <button id="toggle-motion" type="button" aria-label="Pause scene animation">Ⅱ</button>
               <button id="reset-camera" type="button" aria-label="Reset 3D camera">↺</button>
@@ -170,7 +205,7 @@
         <canvas id="particle-canvas"></canvas>
         <div class="portal-ring"><i></i><b></b><span></span></div>
         <div class="transition-copy">
-          <span>Synchronizing your memory</span>
+          <span>Opening your Poké Portal</span>
           <strong id="transition-percent">0%</strong>
         </div>
       </div>

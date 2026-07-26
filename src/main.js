@@ -16,7 +16,7 @@ const dom = {
   input: document.querySelector('#image-input'),
   dropZone: document.querySelector('#drop-zone'),
   error: document.querySelector('#upload-error'),
-  demo: document.querySelector('#demo-button'),
+  exampleButtons: [...document.querySelectorAll('[data-example]')],
   uploadAgain: document.querySelector('#upload-again-top'),
   memoryImage: document.querySelector('#memory-image'),
   memoryDate: document.querySelector('#memory-date'),
@@ -28,13 +28,18 @@ const dom = {
   toggleMotion: document.querySelector('#toggle-motion'),
   resetCamera: document.querySelector('#reset-camera'),
   toggleAudio: document.querySelector('#toggle-audio'),
+  backgroundImage: document.querySelector('#background-image'),
   backgroundVideo: document.querySelector('#background-video'),
-  assetStatus: document.querySelector('#asset-status'),
+  duoPanel: document.querySelector('.duo-panel'),
+  moveButtons: [...document.querySelectorAll('[data-move]')],
   saveMoment: document.querySelector('#save-moment'),
   toast: document.querySelector('#toast'),
 };
 
 let selectedImageUrl = '';
+let activeSceneKey = 'bigFish';
+let activeSceneConfig = null;
+let assetManifest = null;
 let transitionRunning = false;
 let sceneReady = false;
 let sceneApi = null;
@@ -52,16 +57,35 @@ function validateImage(file) {
   return '';
 }
 
-function setMemoryImage(url, label) {
+function setMemoryImage(url, label, sceneKey) {
   if (selectedImageUrl && selectedImageUrl.startsWith('blob:')) URL.revokeObjectURL(selectedImageUrl);
   selectedImageUrl = url;
+  activeSceneKey = sceneKey;
   dom.memoryImage.src = url;
-  dom.memoryImage.alt = `${label || 'Uploaded'} original card memory`;
+  dom.memoryImage.alt = `${label || 'Uploaded'} original memory`;
   dom.memoryDate.textContent = new Intl.DateTimeFormat('en', {
     month: 'short',
     day: '2-digit',
     year: 'numeric',
   }).format(new Date());
+}
+
+function readImageSize(url) {
+  return new Promise((resolve, reject) => {
+    const image = new Image();
+    image.onload = () => resolve({ width: image.naturalWidth, height: image.naturalHeight });
+    image.onerror = () => reject(new Error('The selected image could not be read.'));
+    image.src = url;
+  });
+}
+
+async function matchSceneForImage(url, file) {
+  const fileName = file.name.toLowerCase();
+  if (fileName.includes('big-fish') || fileName.includes('afa4a807')) return 'bigFish';
+  if (fileName.includes('pokemon') || fileName.includes('pikachu')) return 'pikachu';
+
+  const { width, height } = await readImageSize(url);
+  return width / height < 1 ? 'bigFish' : 'pikachu';
 }
 
 async function acceptFile(file) {
@@ -72,35 +96,16 @@ async function acceptFile(file) {
   }
 
   showError();
-  setMemoryImage(URL.createObjectURL(file), file.name.replace(/\.[^.]+$/, ''));
+  const imageUrl = URL.createObjectURL(file);
+  try {
+    const sceneKey = await matchSceneForImage(imageUrl, file);
+    setMemoryImage(imageUrl, file.name.replace(/\.[^.]+$/, ''), sceneKey);
+  } catch (imageError) {
+    URL.revokeObjectURL(imageUrl);
+    showError(imageError.message);
+    return;
+  }
   await enterWorld();
-}
-
-function createDemoMemory() {
-  const svg = `
-    <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="1500" viewBox="0 0 1200 1500">
-      <defs>
-        <linearGradient id="sky" x2="0" y2="1"><stop stop-color="#8edff2"/><stop offset=".62" stop-color="#fff0b1"/><stop offset="1" stop-color="#f8a66f"/></linearGradient>
-        <linearGradient id="card" x2="1" y2="1"><stop stop-color="#ffe66d"/><stop offset="1" stop-color="#ff705e"/></linearGradient>
-      </defs>
-      <rect width="1200" height="1500" rx="52" fill="url(#sky)"/>
-      <circle cx="906" cy="275" r="142" fill="#fff9c9" opacity=".9"/>
-      <path d="M0 902 230 674l180 175 236-276 280 306 274-217v838H0Z" fill="#5d9e7b"/>
-      <path d="M0 1010c248-128 490-54 664 63 184 125 357 74 536-28v455H0Z" fill="#8bc96c"/>
-      <g fill="#fff" opacity=".8"><ellipse cx="250" cy="280" rx="145" ry="48"/><ellipse cx="365" cy="250" rx="95" ry="40"/><ellipse cx="825" cy="490" rx="155" ry="51"/></g>
-      <g transform="translate(290 450) rotate(-6 305 405)">
-        <rect width="610" height="810" rx="38" fill="#24304c" opacity=".2" transform="translate(22 28)"/>
-        <rect width="610" height="810" rx="38" fill="#fff9e9" stroke="#24304c" stroke-width="18"/>
-        <rect x="45" y="45" width="520" height="500" rx="24" fill="url(#card)"/>
-        <circle cx="305" cy="290" r="122" fill="#fff5c7"/>
-        <path d="m305 190 30 69 74 8-56 48 17 73-65-38-65 38 17-73-56-48 74-8Z" fill="#f4b52f"/>
-        <text x="65" y="630" font-family="Arial,sans-serif" font-weight="700" font-size="54" fill="#24304c">FIRST ENCOUNTER</text>
-        <rect x="65" y="675" width="470" height="22" rx="11" fill="#a9d7cb"/>
-        <rect x="65" y="722" width="330" height="16" rx="8" fill="#ddd5c1"/>
-      </g>
-      <g stroke="#fff9e9" stroke-width="12" stroke-linecap="round"><path d="m171 451 38-72m-73 37 73 35"/><path d="m1000 693 45-66m-80 25 78 34"/></g>
-    </svg>`;
-  return URL.createObjectURL(new Blob([svg], { type: 'image/svg+xml' }));
 }
 
 function handleDrag(event) {
@@ -122,10 +127,17 @@ dom.dropZone.addEventListener('keydown', (event) => {
 });
 dom.input.addEventListener('change', () => acceptFile(dom.input.files[0]));
 dom.uploadForm.addEventListener('submit', (event) => event.preventDefault());
-dom.demo.addEventListener('click', async () => {
-  setMemoryImage(createDemoMemory(), 'Demo');
+dom.exampleButtons.forEach((button) => button.addEventListener('click', async () => {
+  const manifest = await getAssetConfig();
+  const sceneKey = button.dataset.example;
+  const config = manifest.scenes?.[sceneKey];
+  if (!config) {
+    showError('That featured memory is unavailable right now.');
+    return;
+  }
+  setMemoryImage(resolveAsset(config.originalImage), config.name, sceneKey);
   await enterWorld();
-});
+}));
 
 async function enterWorld() {
   if (transitionRunning) return;
@@ -133,7 +145,7 @@ async function enterWorld() {
   dom.transition.classList.add('is-active');
   dom.transition.setAttribute('aria-hidden', 'false');
 
-  const duration = reducedMotion ? 260 : 1850;
+  const duration = reducedMotion ? 260 : 2150;
   animatePortalParticles(duration);
   await new Promise((resolve) => window.setTimeout(resolve, duration * 0.68));
 
@@ -148,6 +160,8 @@ async function enterWorld() {
   if (!sceneReady) {
     sceneApi = await createThreeScene();
     sceneReady = true;
+  } else {
+    await sceneApi.load(activeSceneKey);
   }
   sceneApi.resize();
   sceneApi.play();
@@ -172,19 +186,49 @@ function animatePortalParticles(duration) {
   context.setTransform(ratio, 0, 0, ratio, 0, 0);
 
   const colors = ['#ff5b52', '#ffd34f', '#72d5c3', '#fdf8e8', '#4876d7'];
-  const particles = Array.from({ length: reducedMotion ? 24 : 150 }, (_, index) => {
+  const particles = Array.from({ length: reducedMotion ? 24 : 170 }, (_, index) => {
     const angle = (index / 150) * Math.PI * 10 + Math.random();
     const distance = 90 + Math.random() * Math.max(width, height) * 0.7;
     return {
       angle,
       distance,
-      radius: 1.5 + Math.random() * 5,
+      radius: index % 13 === 0 ? 7 + Math.random() * 8 : 1.5 + Math.random() * 5,
       color: colors[index % colors.length],
+      kind: index % 13 === 0 ? 'pokeball' : 'spark',
       offset: Math.random() * 0.15,
       spin: (Math.random() - 0.5) * 2.4,
     };
   });
   const started = performance.now();
+
+  function drawMiniPokeball(x, y, size, rotation, alpha) {
+    context.save();
+    context.translate(x, y);
+    context.rotate(rotation);
+    context.globalAlpha = alpha;
+    context.globalCompositeOperation = 'source-over';
+    context.beginPath();
+    context.arc(0, 0, size, 0, Math.PI * 2);
+    context.clip();
+    context.fillStyle = '#fffaf0';
+    context.fillRect(-size, -size, size * 2, size * 2);
+    context.fillStyle = '#ef514c';
+    context.fillRect(-size, -size, size * 2, size);
+    context.fillStyle = '#172746';
+    context.fillRect(-size, -size * 0.16, size * 2, size * 0.32);
+    context.lineWidth = Math.max(1.5, size * 0.16);
+    context.strokeStyle = '#172746';
+    context.beginPath();
+    context.arc(0, 0, size * 0.95, 0, Math.PI * 2);
+    context.stroke();
+    context.fillStyle = '#fffaf0';
+    context.beginPath();
+    context.arc(0, 0, size * 0.29, 0, Math.PI * 2);
+    context.fill();
+    context.lineWidth = Math.max(1.2, size * 0.12);
+    context.stroke();
+    context.restore();
+  }
 
   function draw(now) {
     const progress = Math.min((now - started) / duration, 1);
@@ -200,7 +244,13 @@ function animatePortalParticles(duration) {
       const angle = particle.angle + particle.spin * local;
       const x = Math.cos(angle) * inward;
       const y = Math.sin(angle) * inward * 0.65;
-      context.globalAlpha = Math.sin(local * Math.PI) * 0.92;
+      const alpha = Math.sin(local * Math.PI) * 0.92;
+      if (particle.kind === 'pokeball') {
+        drawMiniPokeball(x, y, particle.radius * (0.78 + local * 0.36), angle + local * Math.PI * 4, alpha);
+        return;
+      }
+      context.globalCompositeOperation = 'lighter';
+      context.globalAlpha = alpha;
       context.fillStyle = particle.color;
       context.beginPath();
       context.arc(x, y, particle.radius * (0.7 + local), 0, Math.PI * 2);
@@ -350,29 +400,55 @@ function createPartner() {
   return group;
 }
 
-function createStage() {
+function createStage(renderer) {
   const group = new THREE.Group();
-  const ground = new THREE.Mesh(
-    new THREE.CircleGeometry(3.25, 96),
-    new THREE.MeshStandardMaterial({ color: 0xf1d88a, roughness: 0.8, metalness: 0.05, transparent: true, opacity: 0.84 }),
-  );
-  ground.rotation.x = -Math.PI / 2;
-  ground.receiveShadow = true;
+  group.name = 'Poké Ball arena';
+  const stageTexture = new THREE.TextureLoader().load(resolveAsset('assets/stage/pokeball-stage-cover.png'));
+  stageTexture.colorSpace = THREE.SRGBColorSpace;
+  stageTexture.anisotropy = renderer.capabilities.getMaxAnisotropy();
+  stageTexture.minFilter = THREE.LinearMipmapLinearFilter;
 
-  const ring = new THREE.Mesh(
-    new THREE.TorusGeometry(3.28, 0.025, 8, 160),
-    new THREE.MeshBasicMaterial({ color: 0xf05f58, transparent: true, opacity: 0.72 }),
+  const stageBase = new THREE.Mesh(
+    new THREE.CylinderGeometry(3.27, 3.38, 0.18, 96, 1, false),
+    new THREE.MeshStandardMaterial({
+      color: 0x123e86,
+      roughness: 0.28,
+      metalness: 0.58,
+    }),
   );
-  ring.rotation.x = Math.PI / 2;
-  ring.position.y = 0.015;
+  stageBase.position.y = 0.01;
+  stageBase.receiveShadow = true;
+  stageBase.castShadow = true;
 
-  const innerRing = new THREE.Mesh(
-    new THREE.RingGeometry(2.35, 2.38, 96),
-    new THREE.MeshBasicMaterial({ color: 0x4aa99b, transparent: true, opacity: 0.38, side: THREE.DoubleSide }),
+  const cover = new THREE.Mesh(
+    new THREE.CircleGeometry(3.29, 128),
+    new THREE.MeshStandardMaterial({
+      map: stageTexture,
+      color: 0xffffff,
+      roughness: 0.5,
+      metalness: 0.12,
+      transparent: true,
+      alphaTest: 0.025,
+    }),
   );
-  innerRing.rotation.x = -Math.PI / 2;
-  innerRing.position.y = 0.025;
-  group.add(ground, ring, innerRing);
+  cover.rotation.x = -Math.PI / 2;
+  cover.position.y = 0.11;
+  cover.receiveShadow = true;
+
+  const underglow = new THREE.Mesh(
+    new THREE.TorusGeometry(3.36, 0.045, 10, 160),
+    new THREE.MeshBasicMaterial({
+      color: 0x49baff,
+      transparent: true,
+      opacity: 0.75,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+    }),
+  );
+  underglow.rotation.x = Math.PI / 2;
+  underglow.position.y = -0.035;
+
+  group.add(stageBase, cover, underglow);
   return group;
 }
 
@@ -401,21 +477,235 @@ function createWorldParticles() {
   );
 }
 
+function createElectricField() {
+  const group = new THREE.Group();
+  group.name = 'Partner electric field';
+  group.position.set(1.25, 1.25, 0);
+  group.userData.intensity = 0;
+
+  const materials = [];
+  for (let boltIndex = 0; boltIndex < 7; boltIndex += 1) {
+    const points = [];
+    const angle = (boltIndex / 7) * Math.PI * 2;
+    for (let pointIndex = 0; pointIndex < 7; pointIndex += 1) {
+      const progress = pointIndex / 6;
+      const radius = 0.72 + progress * 0.74;
+      const jitter = pointIndex === 0 || pointIndex === 6 ? 0 : (Math.random() - 0.5) * 0.22;
+      points.push(new THREE.Vector3(
+        Math.cos(angle) * radius + jitter,
+        (progress - 0.5) * 1.75 + (Math.random() - 0.5) * 0.16,
+        Math.sin(angle) * radius * 0.55 + jitter,
+      ));
+    }
+    const material = new THREE.LineBasicMaterial({
+      color: boltIndex % 2 ? 0xfff16a : 0x63c7ff,
+      transparent: true,
+      opacity: 0.1,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+    });
+    materials.push(material);
+    group.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(points), material));
+  }
+
+  const ringMaterial = new THREE.MeshBasicMaterial({
+    color: 0xffdf3c,
+    transparent: true,
+    opacity: 0,
+    blending: THREE.AdditiveBlending,
+    depthWrite: false,
+  });
+  const shockwave = new THREE.Mesh(new THREE.TorusGeometry(0.8, 0.025, 8, 72), ringMaterial);
+  shockwave.rotation.x = Math.PI / 2;
+  shockwave.position.y = -1.02;
+  group.add(shockwave);
+  group.userData.materials = materials;
+  group.userData.shockwave = shockwave;
+  return group;
+}
+
+function createPikachuDeformer(model) {
+  const uniforms = {
+    uPokeTime: { value: 0 },
+    uPokeReaction: { value: 0 },
+    uPokeEnergy: { value: reducedMotion ? 0.2 : 1 },
+  };
+  let animatedMeshes = 0;
+
+  function installDeformation(material, bounds) {
+    const min = bounds.min;
+    const size = bounds.getSize(new THREE.Vector3());
+    const center = bounds.getCenter(new THREE.Vector3());
+    const originalCompile = material.onBeforeCompile;
+    const originalCacheKey = material.customProgramCacheKey?.bind(material);
+    const number = (value) => Number(value).toFixed(8);
+
+    material.onBeforeCompile = (shader, renderer) => {
+      originalCompile?.(shader, renderer);
+      Object.assign(shader.uniforms, uniforms);
+      shader.vertexShader = shader.vertexShader
+        .replace(
+          '#include <common>',
+          `#include <common>
+          uniform float uPokeTime;
+          uniform float uPokeReaction;
+          uniform float uPokeEnergy;`,
+        )
+        .replace(
+          '#include <begin_vertex>',
+          `#include <begin_vertex>
+          float pokeY = clamp((position.y - ${number(min.y)}) / ${number(Math.max(size.y, 0.0001))}, 0.0, 1.0);
+          float pokeX = (position.x - ${number(center.x)}) / ${number(Math.max(size.x * 0.5, 0.0001))};
+          float pokeZ = (position.z - ${number(center.z)}) / ${number(Math.max(size.z * 0.5, 0.0001))};
+          float pokeBreath = sin(uPokeTime * 2.45) * 0.5 + 0.5;
+          float pokeBody = smoothstep(0.08, 0.28, pokeY) * (1.0 - smoothstep(0.66, 0.84, pokeY));
+          float pokeUpper = smoothstep(0.34, 0.78, pokeY);
+          float pokeHead = smoothstep(0.58, 0.84, pokeY);
+          float pokeEar = smoothstep(0.78, 0.98, pokeY);
+          float pokeFeet = 1.0 - smoothstep(0.05, 0.24, pokeY);
+          float pokeOuter = smoothstep(0.48, 0.94, abs(pokeX));
+
+          float breatheScale = 1.0 + pokeBody * pokeBreath * 0.018 * uPokeEnergy;
+          transformed.x = ${number(center.x)} + (transformed.x - ${number(center.x)}) * breatheScale;
+          transformed.z = ${number(center.z)} + (transformed.z - ${number(center.z)}) * breatheScale;
+
+          float bodyLean = (sin(uPokeTime * 0.88) * 0.026 + sin(uPokeTime * 0.31) * 0.014) * uPokeEnergy;
+          bodyLean += sin(uPokeTime * 8.0) * uPokeReaction * 0.055;
+          float leanPivot = ${number(min.y + size.y * 0.24)};
+          float leanY = transformed.y - leanPivot;
+          transformed.x += -leanY * bodyLean * pokeUpper;
+          transformed.y += abs(pokeX) * pokeFeet * sin(uPokeTime * 1.76) * ${number(size.y * 0.012)} * uPokeEnergy;
+
+          float headTurn = (sin(uPokeTime * 0.72) * 0.024 + sin(uPokeTime * 0.19) * 0.016) * uPokeEnergy;
+          transformed.x += pokeHead * headTurn * ${number(size.x)};
+          transformed.z += pokeHead * sin(uPokeTime * 1.08) * ${number(size.z * 0.008)} * uPokeEnergy;
+          transformed.y += pokeHead * sin(uPokeTime * 1.42) * ${number(size.y * 0.008)} * uPokeEnergy;
+
+          float earSide = sign(pokeX == 0.0 ? 1.0 : pokeX);
+          float earTwitch = sin(uPokeTime * 3.35 + earSide * 1.7) * 0.55 + sin(uPokeTime * 7.9 + earSide) * 0.18;
+          transformed.x += pokeEar * earSide * earTwitch * ${number(size.x * 0.038)} * uPokeEnergy;
+          transformed.z += pokeEar * earTwitch * ${number(size.z * 0.018)} * uPokeEnergy;
+
+          float pawStep = sin(uPokeTime * 1.76 + earSide * 1.5708) * pokeOuter * pokeBody;
+          transformed.y += pawStep * ${number(size.y * 0.014)} * uPokeEnergy;
+          transformed.z += pawStep * ${number(size.z * 0.012)} * uPokeEnergy;
+
+          float tailSwish = sin(uPokeTime * 2.15) * pokeOuter * (1.0 - pokeHead) * (1.0 - pokeFeet);
+          transformed.z += tailSwish * earSide * ${number(size.z * 0.018)} * uPokeEnergy;
+
+          float actionWave = sin(pokeY * 3.14159265);
+          transformed.x += sin(uPokeTime * 10.0 + pokeY * 5.0) * uPokeReaction * actionWave * ${number(size.x * 0.032)};
+          transformed.y += uPokeReaction * actionWave * ${number(size.y * 0.045)};
+          transformed.z += cos(uPokeTime * 9.0 + pokeX * 2.0) * uPokeReaction * actionWave * ${number(size.z * 0.018)};`,
+        );
+    };
+    material.customProgramCacheKey = () => `pokimation-deform-v2-${originalCacheKey?.() || ''}`;
+    material.needsUpdate = true;
+  }
+
+  model.traverse((object) => {
+    if (!object.isMesh || !object.geometry?.attributes?.position) return;
+    object.geometry.computeBoundingBox();
+    const bounds = object.geometry.boundingBox;
+    if (!bounds) return;
+
+    const sourceMaterials = Array.isArray(object.material) ? object.material : [object.material];
+    const animatedMaterials = sourceMaterials.map((source) => {
+      const material = source.clone();
+      installDeformation(material, bounds);
+      return material;
+    });
+    object.material = Array.isArray(object.material) ? animatedMaterials : animatedMaterials[0];
+
+    const depthMaterial = new THREE.MeshDepthMaterial({ depthPacking: THREE.RGBADepthPacking });
+    installDeformation(depthMaterial, bounds);
+    object.customDepthMaterial = depthMaterial;
+    animatedMeshes += 1;
+  });
+
+  return animatedMeshes
+    ? {
+        update(time, reaction) {
+          uniforms.uPokeTime.value = time;
+          uniforms.uPokeReaction.value = reaction;
+        },
+      }
+    : null;
+}
+
 async function getAssetConfig() {
+  if (assetManifest) return assetManifest;
   try {
     const response = await fetch(resolveAsset('assets/scene-config.json'));
     if (!response.ok) throw new Error('Missing scene config');
-    return await response.json();
+    assetManifest = await response.json();
+    return assetManifest;
   } catch (error) {
     console.warn('Pokimation is using preview scene assets.', error);
-    return {};
+    assetManifest = { scenes: {} };
+    return assetManifest;
   }
+}
+
+function setText(selector, value) {
+  const element = document.querySelector(selector);
+  if (element && value !== undefined) element.textContent = value;
+}
+
+function applySceneContent(sceneKey, config) {
+  activeSceneKey = sceneKey;
+  activeSceneConfig = config;
+  dom.experienceView.dataset.scene = sceneKey;
+
+  setText('#scene-title', config.sceneTitle);
+  setText('#scene-subtitle', config.sceneSubtitle);
+  setText('#memory-caption', config.memoryCaption);
+  setText('#trainer-id', config.trainerId);
+  setText('#capture-label', config.captureLabel);
+  setText('#bond-value', config.bondValue);
+  setText('#memory-verified', config.verifiedLabel);
+  setText('#partner-number', config.number);
+  setText('#partner-name', config.name);
+  setText('#partner-gender', config.gender);
+  setText('#partner-rarity', config.rarity);
+  setText('#type-icon', config.typeIcon);
+  setText('#partner-type', config.type);
+  setText('#partner-level', config.level);
+  setText('#partner-hp', config.hp);
+  setText('#partner-height', config.height);
+  setText('#partner-weight', config.weight);
+  setText('#scene-tip', config.tip);
+  setText('#confirm-label', config.confirmLabel);
+
+  const filledStars = Math.max(0, Math.min(5, Number(config.stars) || 0));
+  const stars = document.querySelector('#partner-stars');
+  stars.setAttribute('aria-label', `${filledStars} out of five stars`);
+  stars.innerHTML = `${'★ '.repeat(filledStars)}${filledStars < 5 ? `<i>${'★ '.repeat(5 - filledStars)}</i>` : ''}`.trim();
+
+  document.querySelectorAll('[data-stat]').forEach((row, index) => {
+    const stat = config.stats?.[index];
+    if (!stat) return;
+    row.querySelector(':scope > span > i').textContent = stat.icon;
+    row.querySelector(':scope > span > em').textContent = stat.label;
+    row.querySelector(':scope > b > em').style.setProperty('--value', `${stat.value}%`);
+    row.querySelector(':scope > strong').textContent = stat.value;
+  });
+
+  dom.moveButtons.forEach((button, index) => {
+    const move = config.moves?.[index];
+    if (!move) return;
+    button.dataset.move = move.id;
+    button.querySelector('i').textContent = move.icon;
+    button.querySelector('span').textContent = move.name;
+    button.querySelector('b').textContent = move.pp;
+    button.classList.remove('is-active');
+  });
 }
 
 async function createThreeScene() {
   const scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(34, 1, 0.1, 60);
-  const defaultCamera = new THREE.Vector3(0, 2.5, 8.6);
+  const defaultCamera = new THREE.Vector3(0, 2.6, 10.5);
   camera.position.copy(defaultCamera);
 
   const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: 'high-performance' });
@@ -431,16 +721,16 @@ async function createThreeScene() {
   dom.threeRoot.append(renderer.domElement);
 
   const controls = new OrbitControls(camera, renderer.domElement);
-  controls.target.set(0, 1.45, 0);
+  controls.target.set(0, 1.78, 0);
   controls.enableDamping = true;
   controls.dampingFactor = 0.06;
   controls.enablePan = false;
-  controls.minDistance = 5.5;
-  controls.maxDistance = 12;
+  controls.minDistance = 6;
+  controls.maxDistance = 14;
   controls.minPolarAngle = Math.PI * 0.24;
   controls.maxPolarAngle = Math.PI * 0.55;
   controls.autoRotate = !reducedMotion;
-  controls.autoRotateSpeed = 0.35;
+  controls.autoRotateSpeed = 0.12;
 
   scene.add(new THREE.HemisphereLight(0xfff6dc, 0x4b6e78, 2.5));
   const key = new THREE.DirectionalLight(0xfff0c5, 4.6);
@@ -459,7 +749,7 @@ async function createThreeScene() {
   warm.position.set(0, 1.2, 3.4);
   scene.add(warm);
 
-  const stage = createStage();
+  const stage = createStage(renderer);
   const humanSlot = new THREE.Group();
   const pokemonSlot = new THREE.Group();
   const trainer = createTrainer();
@@ -469,31 +759,24 @@ async function createThreeScene() {
   scene.add(stage, humanSlot, pokemonSlot);
 
   const worldParticles = createWorldParticles();
-  scene.add(worldParticles);
+  const electricField = createElectricField();
+  scene.add(worldParticles, electricField);
   const mixers = [];
   const timer = new THREE.Timer();
   timer.connect(document);
-  const desiredTarget = new THREE.Vector3(0, 1.45, 0);
+  const desiredTarget = new THREE.Vector3(0, 1.78, 0);
   let playing = true;
   let visible = true;
-
-  const config = await getAssetConfig();
-  const configuredAssets = [config.humanModel, config.pokemonModel].filter(Boolean).length;
-
-  if (config.backgroundVideo) {
-    dom.backgroundVideo.src = resolveAsset(config.backgroundVideo);
-    dom.backgroundVideo.load();
-    dom.backgroundVideo.play().catch(() => {});
-    dom.toggleAudio.disabled = false;
-  }
+  let partnerReactionAt = -10;
+  let partnerReactionStrength = 0;
 
   const draco = new DRACOLoader();
   draco.setDecoderPath(resolveAsset('draco/'));
   const loader = new GLTFLoader();
   loader.setDRACOLoader(draco);
 
-  async function replacePreview(slot, path, targetHeight, xPosition, label) {
-    if (!path) return false;
+  async function replacePreview(slot, path, targetHeight, xPosition, label, rotationY = 0) {
+    if (!path) return { loaded: false, animated: false };
     try {
       const gltf = await loader.loadAsync(resolveAsset(path));
       const model = gltf.scene;
@@ -509,37 +792,92 @@ async function createThreeScene() {
       model.scale.setScalar(scale);
       const scaledBox = new THREE.Box3().setFromObject(model);
       const center = scaledBox.getCenter(new THREE.Vector3());
-      model.position.set(xPosition - center.x, -scaledBox.min.y + 0.04, -center.z);
+      model.position.set(xPosition - center.x, -scaledBox.min.y + 0.13, -center.z);
+      model.rotation.y = rotationY;
       slot.clear();
       slot.add(model);
+      let proceduralMotion = null;
       if (gltf.animations.length) {
         const mixer = new THREE.AnimationMixer(model);
         mixer.clipAction(gltf.animations[0]).play();
         mixers.push(mixer);
+      } else if (label === 'partner') {
+        proceduralMotion = createPikachuDeformer(model);
       }
-      return true;
+      return { loaded: true, animated: gltf.animations.length > 0, proceduralMotion };
     } catch (error) {
       console.warn(`Could not load ${label} model; keeping the preview companion.`, error);
-      return false;
+      return { loaded: false, animated: false };
     }
   }
 
-  const results = await Promise.all([
-    replacePreview(humanSlot, config.humanModel, 3.45, -1.2, 'human'),
-    replacePreview(pokemonSlot, config.pokemonModel, 2.35, 1.25, 'Pokémon'),
-  ]);
-  const loadedCount = results.filter(Boolean).length;
-  dom.assetStatus.textContent = loadedCount
-    ? `${loadedCount}/2 final companion${loadedCount === 1 ? '' : 's'} loaded`
-    : configuredAssets
-      ? 'Using preview companions · check asset paths'
-      : 'Preview companions · ready for your assets';
+  let partnerMotion = null;
+
+  async function loadScene(sceneKey) {
+    const manifest = await getAssetConfig();
+    const resolvedKey = manifest.scenes?.[sceneKey] ? sceneKey : manifest.defaultScene;
+    const config = manifest.scenes?.[resolvedKey];
+    if (!config) return;
+
+    applySceneContent(resolvedKey, config);
+    mixers.splice(0).forEach((mixer) => mixer.stopAllAction());
+
+    dom.backgroundVideo.pause();
+    dom.backgroundVideo.hidden = true;
+    dom.backgroundImage.hidden = true;
+    dom.backgroundVideo.removeAttribute('poster');
+    dom.toggleAudio.disabled = true;
+    dom.toggleAudio.classList.remove('is-active');
+    dom.backgroundVideo.muted = true;
+
+    if (config.backgroundImage) {
+      dom.backgroundImage.src = resolveAsset(config.backgroundImage);
+      dom.backgroundImage.hidden = false;
+    } else if (config.backgroundVideo) {
+      dom.backgroundVideo.src = resolveAsset(config.backgroundVideo);
+      if (config.backgroundPoster) dom.backgroundVideo.poster = resolveAsset(config.backgroundPoster);
+      dom.backgroundVideo.hidden = false;
+      dom.backgroundVideo.load();
+      dom.backgroundVideo.play().catch(() => {});
+      dom.toggleAudio.disabled = false;
+    }
+
+    const results = await Promise.all([
+      replacePreview(
+        humanSlot,
+        config.humanModel,
+        config.humanHeight || 4.14,
+        config.humanX ?? -1.2,
+        'human',
+        config.humanRotationY || 0,
+      ),
+      replacePreview(
+        pokemonSlot,
+        config.partnerModel,
+        config.partnerHeight || 2.82,
+        config.partnerX ?? 1.25,
+        'partner',
+        config.partnerRotationY || 0,
+      ),
+    ]);
+    partnerMotion = results[1].proceduralMotion;
+    renderer.domElement.dataset.humanMotion = results[0].animated ? 'skeletal' : 'static';
+    renderer.domElement.dataset.partnerMotion = results[1].animated
+      ? 'skeletal'
+      : partnerMotion
+        ? 'procedural-deform'
+        : 'procedural';
+    renderer.domElement.setAttribute('aria-label', `Interactive 3D preview of the trainer and ${config.name}`);
+  }
+
+  await loadScene(activeSceneKey);
 
   function resize() {
     const rect = dom.threeRoot.getBoundingClientRect();
     if (!rect.width || !rect.height) return;
     renderer.setSize(rect.width, rect.height, false);
     camera.aspect = rect.width / rect.height;
+    camera.fov = camera.aspect < 0.9 ? 54 : 34;
     camera.updateProjectionMatrix();
   }
 
@@ -547,15 +885,44 @@ async function createThreeScene() {
 
   function focus(mode) {
     const x = mode === 'human' ? -1.15 : mode === 'pokemon' ? 1.15 : 0;
-    desiredTarget.set(x, mode === 'pokemon' ? 1.2 : 1.45, 0);
+    desiredTarget.set(x, mode === 'human' ? 1.9 : mode === 'pokemon' ? 1.48 : 1.78, 0);
     dom.focusButtons.forEach((button) => button.classList.toggle('is-active', button.dataset.focus === mode));
     controls.autoRotate = mode === 'duo' && !reducedMotion;
+    if (mode === 'pokemon') triggerPartnerReaction(0.72);
+  }
+
+  function triggerPartnerReaction(strength = 1) {
+    if (!playing) {
+      playing = true;
+      dom.toggleMotion.textContent = 'Ⅱ';
+      dom.toggleMotion.setAttribute('aria-label', 'Pause scene animation');
+    }
+    partnerReactionAt = timer.getElapsed();
+    partnerReactionStrength = strength;
+    electricField.userData.intensity = Math.max(electricField.userData.intensity, strength);
+    dom.duoPanel.classList.remove('is-reacting');
+    requestAnimationFrame(() => dom.duoPanel.classList.add('is-reacting'));
+    window.setTimeout(() => dom.duoPanel.classList.remove('is-reacting'), 900);
   }
 
   dom.focusButtons.forEach((button) => button.addEventListener('click', () => focus(button.dataset.focus)));
+  dom.moveButtons.forEach((button) => button.addEventListener('click', () => {
+    dom.moveButtons.forEach((moveButton) => moveButton.classList.toggle('is-active', moveButton === button));
+    triggerPartnerReaction(button === dom.moveButtons[0] ? 1.35 : 1);
+  }));
+  let pointerOrigin = null;
+  renderer.domElement.addEventListener('pointerdown', (event) => {
+    pointerOrigin = { x: event.clientX, y: event.clientY };
+  });
+  renderer.domElement.addEventListener('pointerup', (event) => {
+    if (!pointerOrigin) return;
+    const distance = Math.hypot(event.clientX - pointerOrigin.x, event.clientY - pointerOrigin.y);
+    pointerOrigin = null;
+    if (distance < 7) triggerPartnerReaction(0.9);
+  });
   dom.resetCamera.addEventListener('click', () => {
     camera.position.copy(defaultCamera);
-    desiredTarget.set(0, 1.45, 0);
+    desiredTarget.set(0, 1.78, 0);
     controls.target.copy(desiredTarget);
     focus('duo');
     controls.update();
@@ -573,15 +940,60 @@ async function createThreeScene() {
     const time = timer.getElapsed();
     if (visible && playing) {
       mixers.forEach((mixer) => mixer.update(delta));
-      if (trainer.userData.preview) {
-        trainer.position.y = 0.15 + Math.sin(time * 1.25) * 0.035;
-        trainer.rotation.y = Math.sin(time * 0.48) * 0.08;
+      const reactionAge = time - partnerReactionAt;
+      const reactionProgress = reactionAge >= 0 && reactionAge < 1.15 ? reactionAge / 1.15 : -1;
+      const reactionEnvelope = reactionProgress >= 0 ? Math.sin(reactionProgress * Math.PI) : 0;
+      const reactionPower = reactionEnvelope * partnerReactionStrength;
+      const reactionJump = reactionEnvelope * 0.38;
+      const reactionRecoil = reactionProgress >= 0 ? Math.sin(reactionProgress * Math.PI * 2) * 0.09 : 0;
+      const motionCycle = time % 7.2;
+      const motionPulse = (start, duration, height) => {
+        if (motionCycle < start || motionCycle > start + duration) return 0;
+        return Math.sin(((motionCycle - start) / duration) * Math.PI) * height;
+      };
+      const naturalHop = motionPulse(4.5, 0.95, 0.13);
+      const anticipation = motionCycle > 4.12 && motionCycle < 4.5
+        ? Math.sin(((motionCycle - 4.12) / 0.38) * Math.PI) * 0.065
+        : 0;
+      const landing = motionCycle > 5.45 && motionCycle < 5.88
+        ? Math.sin(((motionCycle - 5.45) / 0.43) * Math.PI) * 0.075
+        : 0;
+      const partnerLift = naturalHop + reactionJump;
+      const bodySquash = anticipation + landing - reactionRecoil;
+      const weightShift = Math.sin(time * 0.92) * 0.032 + Math.sin(time * 0.27) * 0.016;
+
+      humanSlot.position.y = Math.sin(time * 1.15) * 0.018;
+      humanSlot.rotation.y = Math.sin(time * 0.38) * 0.025;
+      pokemonSlot.position.y = partnerLift;
+      pokemonSlot.position.x = weightShift + reactionRecoil * 0.2;
+      pokemonSlot.position.z = Math.sin(time * 0.63) * 0.02 - reactionPower * 0.025;
+      pokemonSlot.rotation.y = Math.sin(time * 0.58) * 0.055 + Math.sin(time * 0.19) * 0.025 + reactionRecoil * 0.8;
+      pokemonSlot.rotation.z = Math.sin(time * 0.92) * 0.025 - reactionRecoil * 0.65;
+      pokemonSlot.rotation.x = naturalHop * -0.07 + Math.sin(time * 0.7) * 0.012 - reactionPower * 0.035;
+      pokemonSlot.scale.set(
+        1 + bodySquash * 0.18,
+        1 - bodySquash * 0.14,
+        1 + bodySquash * 0.18,
+      );
+      partnerMotion?.update(time, reactionPower);
+
+      electricField.userData.intensity = Math.max(0.12, electricField.userData.intensity - delta * 0.78);
+      electricField.position.y = 1.5 + partnerLift;
+      electricField.rotation.y += delta * (0.2 + electricField.userData.intensity * 1.4);
+      electricField.userData.materials.forEach((material, index) => {
+        material.opacity = (0.035 + electricField.userData.intensity * 0.5) * (0.58 + Math.sin(time * 9 + index) * 0.42);
+      });
+      const shockwave = electricField.userData.shockwave;
+      if (reactionProgress >= 0) {
+        shockwave.visible = true;
+        shockwave.scale.setScalar(0.7 + reactionProgress * 2.2);
+        shockwave.material.opacity = Math.sin(reactionProgress * Math.PI) * 0.78;
+      } else {
+        shockwave.visible = false;
       }
-      if (partner.userData.preview) {
-        partner.position.y = 0.1 + Math.sin(time * 2.1) * 0.09;
-        partner.rotation.y = -0.08 + Math.sin(time * 0.8) * 0.13;
-      }
-      stage.children[1].rotation.z += delta * 0.08;
+
+      stage.children[2].rotation.z += delta * 0.09;
+      stage.children[2].material.opacity = 0.63 + Math.sin(time * 2.1) * 0.14;
       worldParticles.rotation.y -= delta * 0.035;
       worldParticles.position.y = Math.sin(time * 0.6) * 0.08;
     }
@@ -593,24 +1005,48 @@ async function createThreeScene() {
 
   return {
     resize,
+    load: loadScene,
     play() {
       visible = true;
-      dom.backgroundVideo.play().catch(() => {});
+      if (!dom.backgroundVideo.hidden) dom.backgroundVideo.play().catch(() => {});
     },
     pause() {
       visible = false;
+    },
+    celebrate(strength = 1.2) {
+      focus('pokemon');
+      triggerPartnerReaction(strength);
     },
   };
 }
 
 dom.toggleAudio.addEventListener('click', () => {
+  if (dom.backgroundVideo.hidden) return;
   dom.backgroundVideo.muted = !dom.backgroundVideo.muted;
   dom.toggleAudio.classList.toggle('is-active', !dom.backgroundVideo.muted);
   dom.toggleAudio.setAttribute('aria-label', dom.backgroundVideo.muted ? 'Enable background video sound' : 'Mute background video');
 });
 
+dom.duoPanel.addEventListener('pointermove', (event) => {
+  if (event.pointerType === 'touch') return;
+  const rect = dom.duoPanel.getBoundingClientRect();
+  const x = (event.clientX - rect.left) / rect.width - 0.5;
+  const y = (event.clientY - rect.top) / rect.height - 0.5;
+  dom.duoPanel.style.setProperty('--tilt-x', `${(-y * 2.2).toFixed(2)}deg`);
+  dom.duoPanel.style.setProperty('--tilt-y', `${(x * 3).toFixed(2)}deg`);
+  dom.duoPanel.style.setProperty('--glow-x', `${((x + 0.5) * 100).toFixed(1)}%`);
+  dom.duoPanel.style.setProperty('--glow-y', `${((y + 0.5) * 100).toFixed(1)}%`);
+});
+
+dom.duoPanel.addEventListener('pointerleave', () => {
+  dom.duoPanel.style.setProperty('--tilt-x', '0deg');
+  dom.duoPanel.style.setProperty('--tilt-y', '0deg');
+});
+
 dom.saveMoment.addEventListener('click', () => {
   localStorage.setItem('pokimation:last-memory', new Date().toISOString());
+  sceneApi?.celebrate(1.5);
+  dom.toast.querySelector('p').textContent = activeSceneConfig?.confirmedToast || 'Partner confirmed!';
   dom.toast.classList.add('is-visible');
   clearTimeout(toastTimer);
   toastTimer = window.setTimeout(() => dom.toast.classList.remove('is-visible'), 2800);
