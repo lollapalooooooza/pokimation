@@ -2735,3 +2735,305 @@ main,
     transform: translateX(50%);
   }
 }
+
+/* Focused polish pass */
+
+.visually-hidden {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+  clip: rect(0 0 0 0) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
+}
+
+.app-shell[data-view="experience"] .site-header {
+  border-bottom: 0;
+  background: transparent;
+  box-shadow: none;
+  backdrop-filter: none;
+}
+
+.app-shell[data-view="experience"] .header-action {
+  border-color: rgba(255, 255, 255, 0.44);
+  background: transparent;
+  box-shadow: none;
+  backdrop-filter: none;
+}
+
+.experience-heading {
+  justify-content: flex-start;
+}
+
+.select-heading {
+  gap: 0;
+}
+
+.memory-panel,
+.duo-panel {
+  align-self: start;
+  height: auto;
+  min-height: 0;
+}
+
+.memory-photo {
+  height: auto;
+  min-height: 0;
+  flex: 0 0 auto;
+}
+
+.memory-photo img {
+  width: 100%;
+  height: auto;
+  min-height: 0;
+  flex: 0 0 auto;
+  object-fit: contain;
+}
+
+.partner-header {
+  min-height: 58px;
+  padding-inline: 12px;
+}
+
+.partner-ball {
+  width: 40px;
+  height: 40px;
+  border-width: 3px;
+}
+
+.partner-header small {
+  font-size: 7px;
+}
+
+.partner-header h2 {
+  font-size: clamp(23px, 1.9vw, 30px);
+}
+
+.rarity {
+  padding: 5px 7px;
+  font-size: 7px;
+}
+
+.type-row strong {
+  min-width: 154px;
+  font-size: 12px;
+}
+
+.type-row strong i {
+  font-size: 19px;
+}
+
+.stat-list {
+  gap: 3px;
+  padding-bottom: 5px;
+}
+
+.stat-list > div {
+  min-height: 22px;
+  grid-template-columns: 84px 1fr 22px;
+}
+
+.stat-list span {
+  font-size: 8px;
+}
+
+.stat-list span i {
+  width: 22px;
+  height: 22px;
+  font-size: 10px;
+}
+
+.moves-card {
+  padding: 5px 6px;
+}
+
+.moves-card h3 {
+  font-size: 10px;
+}
+
+.moves-card button {
+  min-height: 29px;
+  grid-template-columns: 28px 1fr auto;
+  font-size: 9px;
+}
+
+.moves-card button i {
+  width: 24px;
+  height: 24px;
+  font-size: 14px;
+}
+
+.moves-card button b {
+  font-size: 8px;
+}
+
+.experience-footer {
+  background: transparent;
+  pointer-events: none;
+}
+
+.experience-footer > span,
+.scene-actions {
+  pointer-events: auto;
+}
+
+.focus-switcher {
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  backdrop-filter: none;
+}
+
+.focus-switcher button {
+  color: rgba(255, 255, 255, 0.78);
+  text-shadow: 0 2px 7px rgba(0, 29, 64, 0.88);
+}
+
+.focus-switcher button.is-active {
+  background: transparent;
+  color: var(--game-yellow);
+  box-shadow: inset 0 -2px 0 var(--game-yellow);
+}
+
+.scene-actions button {
+  background: transparent;
+  box-shadow: none;
+  backdrop-filter: none;
+}
+
+.transition-overlay {
+  background:
+    radial-gradient(circle at 50% 50%, rgba(33, 134, 224, 0.46), transparent 32%),
+    radial-gradient(circle at 50% 50%, #123f80, #081a39 68%);
+}
+
+.portal-ring {
+  width: min(32vw, 370px);
+  overflow: visible;
+  border: 7px solid #52b8ff;
+  background: linear-gradient(#ef514c 0 45%, #182743 45% 55%, #fffaf0 55%);
+  box-shadow:
+    0 0 0 3px #fff,
+    0 0 0 9px #0e4fa2,
+    0 0 46px rgba(74, 186, 255, 0.8),
+    0 0 100px rgba(255, 213, 46, 0.3);
+  animation: pokeball-arrive 1.35s var(--ease) infinite alternate;
+}
+
+.portal-ring::before {
+  inset: -16%;
+  border: 2px dashed rgba(255, 218, 54, 0.88);
+  opacity: 0.9;
+  animation: portal-spin 7s linear infinite;
+}
+
+.portal-ring::after {
+  top: 50%;
+  left: 50%;
+  width: 24%;
+  aspect-ratio: 1;
+  border: 11px solid #182743;
+  background: #fff;
+  box-shadow:
+    inset 0 0 0 3px #a8b4c4,
+    0 0 0 3px #fff,
+    0 0 28px rgba(255, 255, 255, 0.85);
+  filter: none;
+  transform: translate(-50%, -50%);
+  animation: pokeball-button 0.85s ease-in-out infinite alternate;
+}
+
+.portal-ring i {
+  inset: -8%;
+  border: 3px solid rgba(87, 200, 255, 0.95);
+  border-right-color: transparent;
+  border-left-color: transparent;
+  filter: drop-shadow(0 0 8px #4dc6ff);
+  animation: portal-spin 2.4s linear infinite reverse;
+}
+
+.portal-ring b {
+  inset: 8%;
+  border: 2px dashed rgba(255, 255, 255, 0.76);
+  opacity: 0.48;
+  animation: portal-spin 10s linear infinite;
+}
+
+.portal-ring span {
+  z-index: 3;
+  width: 15px;
+  height: 15px;
+  background: #fff;
+  box-shadow: 0 0 20px 6px #fff, 0 0 40px 12px #5cc8ff;
+}
+
+.transition-copy {
+  min-width: min(360px, 78vw);
+  border-bottom-color: rgba(92, 200, 255, 0.56);
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.transition-copy strong {
+  color: var(--sun);
+  text-shadow: 0 0 14px rgba(255, 211, 79, 0.7);
+}
+
+.experience-view.is-active .experience-heading,
+.experience-view.is-active .memory-panel,
+.experience-view.is-active .world-panel,
+.experience-view.is-active .duo-panel {
+  animation: trainer-ui-fade 0.58s var(--ease);
+}
+
+.experience-view.is-active .world-panel {
+  animation-duration: 0.72s;
+}
+
+@keyframes pokeball-arrive {
+  from { transform: scale(0.82) rotate(-7deg); }
+  to { transform: scale(1.03) rotate(7deg); }
+}
+
+@keyframes pokeball-button {
+  from { transform: translate(-50%, -50%) scale(0.86); }
+  to { transform: translate(-50%, -50%) scale(1.06); }
+}
+
+@keyframes trainer-ui-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@media (max-width: 980px) {
+  .memory-panel {
+    align-self: start;
+  }
+
+  .memory-photo {
+    min-height: 0;
+  }
+}
+
+@media (max-width: 720px) {
+  .experience-view {
+    grid-template-rows: auto minmax(500px, 64vh) auto auto auto;
+  }
+
+  .memory-panel {
+    display: flex;
+  }
+
+  .memory-photo {
+    min-height: 0;
+  }
+
+  .duo-panel {
+    min-height: 0;
+  }
+
+  .portal-ring {
+    width: 64vw;
+  }
+}

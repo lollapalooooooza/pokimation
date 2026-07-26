@@ -43,7 +43,7 @@ The current production build includes:
 
 - a textured Pikachu GLB generated with Meshy;
 - a rigged human GLB with a 10-second `happy_jump` animation;
-- the supplied Golden Gate anime background video;
+- the refreshed Golden Gate anime background video, optimized to 720p for the web;
 - the supplied Golden Gate card photo as the featured original memory.
 - the supplied transparent Poké Ball cover artwork on a dimensional, illuminated 3D stage.
 - automatic GLB clip playback plus a procedural Pokémon idle/reaction system for static meshes.

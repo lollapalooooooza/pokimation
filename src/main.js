@@ -29,7 +29,6 @@ const dom = {
   resetCamera: document.querySelector('#reset-camera'),
   toggleAudio: document.querySelector('#toggle-audio'),
   backgroundVideo: document.querySelector('#background-video'),
-  assetStatus: document.querySelector('#asset-status'),
   duoPanel: document.querySelector('.duo-panel'),
   moveButtons: [...document.querySelectorAll('[data-move]')],
   saveMoment: document.querySelector('#save-moment'),
@@ -108,7 +107,7 @@ async function enterWorld() {
   dom.transition.classList.add('is-active');
   dom.transition.setAttribute('aria-hidden', 'false');
 
-  const duration = reducedMotion ? 260 : 1850;
+  const duration = reducedMotion ? 260 : 2150;
   animatePortalParticles(duration);
   await new Promise((resolve) => window.setTimeout(resolve, duration * 0.68));
 
@@ -147,19 +146,49 @@ function animatePortalParticles(duration) {
   context.setTransform(ratio, 0, 0, ratio, 0, 0);
 
   const colors = ['#ff5b52', '#ffd34f', '#72d5c3', '#fdf8e8', '#4876d7'];
-  const particles = Array.from({ length: reducedMotion ? 24 : 150 }, (_, index) => {
+  const particles = Array.from({ length: reducedMotion ? 24 : 170 }, (_, index) => {
     const angle = (index / 150) * Math.PI * 10 + Math.random();
     const distance = 90 + Math.random() * Math.max(width, height) * 0.7;
     return {
       angle,
       distance,
-      radius: 1.5 + Math.random() * 5,
+      radius: index % 13 === 0 ? 7 + Math.random() * 8 : 1.5 + Math.random() * 5,
       color: colors[index % colors.length],
+      kind: index % 13 === 0 ? 'pokeball' : 'spark',
       offset: Math.random() * 0.15,
       spin: (Math.random() - 0.5) * 2.4,
     };
   });
   const started = performance.now();
+
+  function drawMiniPokeball(x, y, size, rotation, alpha) {
+    context.save();
+    context.translate(x, y);
+    context.rotate(rotation);
+    context.globalAlpha = alpha;
+    context.globalCompositeOperation = 'source-over';
+    context.beginPath();
+    context.arc(0, 0, size, 0, Math.PI * 2);
+    context.clip();
+    context.fillStyle = '#fffaf0';
+    context.fillRect(-size, -size, size * 2, size * 2);
+    context.fillStyle = '#ef514c';
+    context.fillRect(-size, -size, size * 2, size);
+    context.fillStyle = '#172746';
+    context.fillRect(-size, -size * 0.16, size * 2, size * 0.32);
+    context.lineWidth = Math.max(1.5, size * 0.16);
+    context.strokeStyle = '#172746';
+    context.beginPath();
+    context.arc(0, 0, size * 0.95, 0, Math.PI * 2);
+    context.stroke();
+    context.fillStyle = '#fffaf0';
+    context.beginPath();
+    context.arc(0, 0, size * 0.29, 0, Math.PI * 2);
+    context.fill();
+    context.lineWidth = Math.max(1.2, size * 0.12);
+    context.stroke();
+    context.restore();
+  }
 
   function draw(now) {
     const progress = Math.min((now - started) / duration, 1);
@@ -175,7 +204,13 @@ function animatePortalParticles(duration) {
       const angle = particle.angle + particle.spin * local;
       const x = Math.cos(angle) * inward;
       const y = Math.sin(angle) * inward * 0.65;
-      context.globalAlpha = Math.sin(local * Math.PI) * 0.92;
+      const alpha = Math.sin(local * Math.PI) * 0.92;
+      if (particle.kind === 'pokeball') {
+        drawMiniPokeball(x, y, particle.radius * (0.78 + local * 0.36), angle + local * Math.PI * 4, alpha);
+        return;
+      }
+      context.globalCompositeOperation = 'lighter';
+      context.globalAlpha = alpha;
       context.fillStyle = particle.color;
       context.beginPath();
       context.arc(x, y, particle.radius * (0.7 + local), 0, Math.PI * 2);
@@ -479,7 +514,7 @@ async function createThreeScene() {
   dom.threeRoot.append(renderer.domElement);
 
   const controls = new OrbitControls(camera, renderer.domElement);
-  controls.target.set(0, 1.45, 0);
+  controls.target.set(0, 1.78, 0);
   controls.enableDamping = true;
   controls.dampingFactor = 0.06;
   controls.enablePan = false;
@@ -522,14 +557,12 @@ async function createThreeScene() {
   const mixers = [];
   const timer = new THREE.Timer();
   timer.connect(document);
-  const desiredTarget = new THREE.Vector3(0, 1.45, 0);
+  const desiredTarget = new THREE.Vector3(0, 1.78, 0);
   let playing = true;
   let visible = true;
   let partnerReactionAt = -10;
 
   const config = await getAssetConfig();
-  const configuredAssets = [config.humanModel, config.pokemonModel].filter(Boolean).length;
-
   if (config.backgroundVideo) {
     dom.backgroundVideo.src = resolveAsset(config.backgroundVideo);
     dom.backgroundVideo.load();
@@ -576,15 +609,10 @@ async function createThreeScene() {
   }
 
   const results = await Promise.all([
-    replacePreview(humanSlot, config.humanModel, 3.45, -1.2, 'human', config.humanRotationY),
-    replacePreview(pokemonSlot, config.pokemonModel, 2.35, 1.25, 'Pokémon', config.pokemonRotationY),
+    replacePreview(humanSlot, config.humanModel, 4.14, -1.2, 'human', config.humanRotationY),
+    replacePreview(pokemonSlot, config.pokemonModel, 2.82, 1.25, 'Pokémon', config.pokemonRotationY),
   ]);
-  const loadedCount = results.filter((result) => result.loaded).length;
-  dom.assetStatus.textContent = loadedCount
-    ? `${loadedCount}/2 companions live · Pikachu motion active`
-    : configuredAssets
-      ? 'Using preview companions · check asset paths'
-      : 'Preview companions · ready for your assets';
+  renderer.domElement.dataset.partnerMotion = results[1].animated ? 'skeletal' : 'procedural';
 
   function resize() {
     const rect = dom.threeRoot.getBoundingClientRect();
@@ -599,7 +627,7 @@ async function createThreeScene() {
 
   function focus(mode) {
     const x = mode === 'human' ? -1.15 : mode === 'pokemon' ? 1.15 : 0;
-    desiredTarget.set(x, mode === 'pokemon' ? 1.2 : 1.45, 0);
+    desiredTarget.set(x, mode === 'human' ? 1.9 : mode === 'pokemon' ? 1.48 : 1.78, 0);
     dom.focusButtons.forEach((button) => button.classList.toggle('is-active', button.dataset.focus === mode));
     controls.autoRotate = mode === 'duo' && !reducedMotion;
     if (mode === 'pokemon') triggerPartnerReaction(0.72);
@@ -635,7 +663,7 @@ async function createThreeScene() {
   });
   dom.resetCamera.addEventListener('click', () => {
     camera.position.copy(defaultCamera);
-    desiredTarget.set(0, 1.45, 0);
+    desiredTarget.set(0, 1.78, 0);
     controls.target.copy(desiredTarget);
     focus('duo');
     controls.update();
@@ -655,19 +683,37 @@ async function createThreeScene() {
       mixers.forEach((mixer) => mixer.update(delta));
       const reactionAge = time - partnerReactionAt;
       const reactionProgress = reactionAge >= 0 && reactionAge < 1.15 ? reactionAge / 1.15 : -1;
-      const jump = reactionProgress >= 0 ? Math.sin(reactionProgress * Math.PI) * 0.72 : 0;
-      const recoil = reactionProgress >= 0 ? Math.sin(reactionProgress * Math.PI * 2) * 0.11 : 0;
-      const idleBounce = Math.max(0, Math.sin(time * 2.45)) * 0.075;
+      const reactionJump = reactionProgress >= 0 ? Math.sin(reactionProgress * Math.PI) * 0.9 : 0;
+      const reactionRecoil = reactionProgress >= 0 ? Math.sin(reactionProgress * Math.PI * 2) * 0.14 : 0;
+      const motionCycle = time % 6.4;
+      const motionPulse = (start, duration, height) => {
+        if (motionCycle < start || motionCycle > start + duration) return 0;
+        return Math.sin(((motionCycle - start) / duration) * Math.PI) * height;
+      };
+      const naturalHop = motionPulse(0.75, 0.72, 0.2)
+        + motionPulse(2.05, 0.62, 0.15)
+        + motionPulse(4.35, 1.05, 0.43);
+      const landing = motionCycle > 5.4 && motionCycle < 5.82
+        ? Math.sin(((motionCycle - 5.4) / 0.42) * Math.PI) * 0.11
+        : 0;
+      const breathing = Math.sin(time * 2.25) * 0.018;
+      const partnerLift = Math.max(0, breathing) + naturalHop + reactionJump;
+      const bodySquash = landing - reactionRecoil;
 
       humanSlot.position.y = Math.sin(time * 1.15) * 0.018;
       humanSlot.rotation.y = Math.sin(time * 0.38) * 0.025;
-      pokemonSlot.position.y = idleBounce + jump;
-      pokemonSlot.rotation.z = Math.sin(time * 1.7) * 0.035 - recoil;
-      pokemonSlot.rotation.x = Math.sin(time * 1.15) * 0.018;
-      pokemonSlot.scale.set(1 + recoil * 0.24, 1 - recoil * 0.18, 1 + recoil * 0.24);
+      pokemonSlot.position.y = partnerLift;
+      pokemonSlot.rotation.y = Math.sin(time * 0.72) * 0.085;
+      pokemonSlot.rotation.z = Math.sin(time * 1.35) * 0.045 - reactionRecoil;
+      pokemonSlot.rotation.x = naturalHop * -0.08 + Math.sin(time * 1.05) * 0.018;
+      pokemonSlot.scale.set(
+        1 + bodySquash * 0.22 + Math.sin(time * 2.25) * 0.006,
+        1 - bodySquash * 0.18 + Math.sin(time * 2.25) * 0.012,
+        1 + bodySquash * 0.22 + Math.sin(time * 2.25) * 0.006,
+      );
 
       electricField.userData.intensity = Math.max(0.12, electricField.userData.intensity - delta * 0.78);
-      electricField.position.y = 1.25 + idleBounce + jump;
+      electricField.position.y = 1.5 + partnerLift;
       electricField.rotation.y += delta * (0.2 + electricField.userData.intensity * 1.4);
       electricField.userData.materials.forEach((material, index) => {
         material.opacity = (0.035 + electricField.userData.intensity * 0.5) * (0.58 + Math.sin(time * 9 + index) * 0.42);
