@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#f8f4e8" />
+    <meta
+      name="description"
+      content="Pokimation turns a photo of you holding a Pokémon card into an interactive anime-inspired 3D memory."
+    />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Pokimation — Your card, alive" />
+    <meta
+      property="og:description"
+      content="Drop a favorite card photo and step into an interactive 3D scene with your partner."
+    />
+    <meta name="twitter:card" content="summary_large_image" />
+    <title>Pokimation — Your card, alive</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='28' fill='%23ff5b52'/%3E%3Cpath d='M4 32h56a28 28 0 0 1-56 0Z' fill='%23fffaf0'/%3E%3Ccircle cx='32' cy='32' r='9' fill='%231e2a44'/%3E%3Ccircle cx='32' cy='32' r='4' fill='%23fffaf0'/%3E%3C/svg%3E" />
+    <link rel="stylesheet" href="/src/styles.css" />
+  </head>
+  <body>
+    <div id="app" class="app-shell" data-view="upload">
+      <header class="site-header">
+        <a class="brand" href="#" aria-label="Pokimation home">
+          <span class="brand-ball" aria-hidden="true"><i></i></span>
+          <span class="brand-word">poki<span>mation</span></span>
+        </a>
+        <div class="header-note">
+          <span class="sparkle" aria-hidden="true">✦</span>
+          <span>your card, alive</span>
+        </div>
+        <button id="upload-again-top" class="header-action" type="button" hidden>
+          <span aria-hidden="true">↑</span> New photo
+        </button>
+      </header>
+
+      <main>
+        <section id="upload-view" class="view upload-view is-active" aria-labelledby="upload-title">
+          <div class="paper-sun" aria-hidden="true"></div>
+          <div class="cloud cloud-one" aria-hidden="true"></div>
+          <div class="cloud cloud-two" aria-hidden="true"></div>
+          <div class="landscape-lines" aria-hidden="true"><i></i><i></i><i></i></div>
+          <div class="floating-glyph glyph-one" aria-hidden="true">✦</div>
+          <div class="floating-glyph glyph-two" aria-hidden="true">✿</div>
+          <div class="floating-glyph glyph-three" aria-hidden="true">◇</div>
+
+          <div class="upload-copy">
+            <p class="eyebrow"><span></span> A little memory becomes a big adventure</p>
+            <h1 id="upload-title" tabindex="-1">Bring your<br /><em>card moment</em> to life.</h1>
+            <p class="lede">
+              Upload a photo of you holding your favorite Pokémon card. Pokimation opens it as an
+              interactive 3D scene for you and your partner.
+            </p>
+            <div class="story-steps" aria-label="How Pokimation works">
+              <span><b>01</b> Drop a photo</span>
+              <i aria-hidden="true"></i>
+              <span><b>02</b> Meet your duo</span>
+              <i aria-hidden="true"></i>
+              <span><b>03</b> Explore in 3D</span>
+            </div>
+          </div>
+
+          <div class="upload-card-wrap">
+            <div class="sticker sticker-star" aria-hidden="true">★</div>
+            <div class="sticker sticker-bolt" aria-hidden="true">ϟ</div>
+            <form id="upload-form" class="upload-card">
+              <input
+                id="image-input"
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                aria-describedby="upload-hint upload-error"
+              />
+              <label id="drop-zone" class="drop-zone" for="image-input" tabindex="0">
+                <span class="drop-illustration" aria-hidden="true">
+                  <i class="photo-card photo-card-back"></i>
+                  <i class="photo-card photo-card-front"><b></b></i>
+                  <span class="drop-arrow">↓</span>
+                </span>
+                <strong>Drop your photo here</strong>
+                <span id="upload-hint">or tap to choose · JPG, PNG, WEBP · max 12 MB</span>
+                <span class="browse-pill">Choose a photo <b aria-hidden="true">↗</b></span>
+              </label>
+              <p id="upload-error" class="upload-error" role="alert"></p>
+            </form>
+            <button id="demo-button" class="demo-button" type="button">
+              No photo yet? <span>Preview the magic</span>
+            </button>
+            <p class="privacy-note"><span aria-hidden="true">◈</span> Your image stays in this browser.</p>
+          </div>
+        </section>
+
+        <section id="experience-view" class="view experience-view" aria-labelledby="scene-title" aria-hidden="true">
+          <div class="scene-backdrop" aria-hidden="true">
+            <video id="background-video" muted loop playsinline preload="metadata"></video>
+            <div class="scene-gradient"></div>
+            <div class="speed-lines"></div>
+          </div>
+
+          <div class="experience-heading">
+            <p class="eyebrow"><span></span> Memory synchronized</p>
+            <h1 id="scene-title" tabindex="-1">Your adventure<br />starts <em>together.</em></h1>
+          </div>
+
+          <aside class="memory-panel" aria-label="Uploaded original image">
+            <div class="panel-label"><span>01</span> Original memory</div>
+            <figure class="memory-photo">
+              <img id="memory-image" alt="Your uploaded Pokémon card memory" />
+              <figcaption>
+                <span>Trainer archive</span>
+                <time id="memory-date"></time>
+              </figcaption>
+            </figure>
+            <p>We keep the full original image—never a cropped thumbnail.</p>
+          </aside>
+
+          <section class="world-panel" aria-label="Interactive 3D character and Pokémon scene">
+            <div class="world-topline">
+              <span class="live-chip"><i></i> 3D scene live</span>
+              <span id="asset-status">Preview companions active</span>
+            </div>
+            <div id="three-root" class="three-root"></div>
+            <div class="orbit-hint" aria-hidden="true"><i>↔</i> drag to orbit</div>
+            <div class="world-spark world-spark-one" aria-hidden="true">✦</div>
+            <div class="world-spark world-spark-two" aria-hidden="true">✧</div>
+            <div class="focus-switcher" aria-label="Scene focus">
+              <button type="button" data-focus="human">Trainer</button>
+              <button class="is-active" type="button" data-focus="duo">Duo</button>
+              <button type="button" data-focus="pokemon">Partner</button>
+            </div>
+          </section>
+
+          <aside class="duo-panel" aria-label="Duo story details">
+            <div class="panel-label"><span>02</span> Your duo</div>
+            <p class="chapter">Chapter 001</p>
+            <h2>A wild memory<br />appeared!</h2>
+            <p class="duo-copy">
+              One photo. Two companions. A whole new world waiting just beyond the card frame.
+            </p>
+            <div class="bond-card">
+              <div>
+                <span>Partner bond</span>
+                <strong>First encounter</strong>
+              </div>
+              <b>88<small>%</small></b>
+              <i><span></span></i>
+            </div>
+            <dl class="scene-meta">
+              <div><dt>Scene</dt><dd>Golden meadow</dd></div>
+              <div><dt>Mood</dt><dd>Curious</dd></div>
+              <div><dt>Weather</dt><dd>Soft sun</dd></div>
+            </dl>
+            <button id="save-moment" class="primary-button" type="button">
+              <span>Save this moment</span><b aria-hidden="true">✦</b>
+            </button>
+          </aside>
+
+          <div class="experience-footer">
+            <span><b>Tip</b> Scroll to zoom · drag to look around</span>
+            <div class="scene-actions">
+              <button id="toggle-motion" type="button" aria-label="Pause scene animation">Ⅱ</button>
+              <button id="reset-camera" type="button" aria-label="Reset 3D camera">↺</button>
+              <button id="toggle-audio" type="button" aria-label="Enable background video sound" disabled>♪</button>
+            </div>
+          </div>
+        </section>
+      </main>
+
+      <div id="transition-overlay" class="transition-overlay" aria-hidden="true">
+        <canvas id="particle-canvas"></canvas>
+        <div class="portal-ring"><i></i><b></b><span></span></div>
+        <div class="transition-copy">
+          <span>Synchronizing your memory</span>
+          <strong id="transition-percent">0%</strong>
+        </div>
+      </div>
+
+      <div id="toast" class="toast" role="status" aria-live="polite">
+        <span aria-hidden="true">✦</span><p>Moment saved to your adventure log.</p>
+      </div>
+    </div>
+
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
